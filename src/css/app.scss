@@ -1,0 +1,19 @@
+.bg-header-light {
+    background-color: rgb(80, 80, 80);
+}
+.pp-light {
+    background-color: rgb(60, 60, 60) !important;
+    color: white !important;
+    font-size: var(--text-size) !important;
+    border-color: var(--border-color) !important;
+}
+.pp-bg-dark {
+    background-color: var(--bg-color-dark);
+  }
+.small-font {
+    font-size: 12px;
+}
+.no-ma {
+    margin-top: -20px;
+    margin-bottom: -20px;
+}
