@@ -1,11 +1,15 @@
 <template>
-  <q-select dense dark class="pp-light" square :label="props.label"
-    standout="bg-grey text-white" v-model="model" :options="props.options" options-selected-class="pp-light" popup-content-class="pp-light"
+  <q-select dense :dark="props.dark" :class="`${props.dark ? 'pp-dark' : 'pp-light'} row`" class="text-size" square
+    hide-bottom-space options-selected-class="text-size" popup-content-class="text-size" :label="props.label"
+    :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`" v-model="model" :options="props.options"
     @update:model-value="props.update">
     <template v-slot:selected-item="scope">
       <div :class="props.inputClass">
         {{ scope.opt.name }}
       </div>
+    </template>
+    <template v-slot:after>
+      <slot name="helper" />
     </template>
     <template v-slot:option="scope">
       <q-item v-bind="scope.itemProps">

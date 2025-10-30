@@ -48,8 +48,10 @@ export default defineConfig((ctx) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#build
     build: {
       // publicPath: '/',
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
-
+      vueRouterMode: 'history', // available values: 'hash', 'history'
+      env: {
+        API_DEV: 'http://nsk-deb-srv.nevatom.ru',
+      },
       // webpackTranspile: false,
 
       // Add dependencies for transpiling with Babel (Array of string/regex)

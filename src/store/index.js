@@ -1,5 +1,25 @@
+import { reactive } from 'vue';
 import Vuex from 'vuex';
+import { useRoute } from 'vue-router';
+import moment from 'moment';
 import { api } from 'boot/axios';
+
+const stt = reactive({
+  portDefault: 3080,
+  token: '',
+  isAuth: false,
+  isLoad: false,
+});
+
+const SERVERS_LIST = [
+  {
+    id: 0,
+    name: 'Тестовый',
+    port: 3001,
+    path: '/api_dev',
+  },
+
+];
 
 const storeVue = new Vuex.Store({
   state: {
@@ -8,19 +28,16 @@ const storeVue = new Vuex.Store({
     isAuth: false,
     user: null,
     upd: null,
-    testSrv: false,
-    ip: 'nsk-deb-srv.nevatom.ru:3005',
+    ip: 'nsk-deb-pp',
+    currentServer: SERVERS_LIST[0],
   },
   mutations: {
-    setTestSrv(state, value) {
-      state.testSrv = value;
-    },
     auth_success(state, dataUser) {
+      state.token = dataUser.token;
+      if (dataUser.refresh) {
+        state.refresh = dataUser.refresh;
+      }
       state.user = dataUser.user;
-      state.isAuth = true;
-    },
-    initUser(state, value) {
-      state.user = value.user;
       state.isAuth = true;
     },
     logout(state) {
@@ -31,60 +48,162 @@ const storeVue = new Vuex.Store({
     },
   },
   actions: {
-    async login({ commit }, userLogin) {
-      try {
-        const resp = await postQuery(`http://nsk-deb-srv.nevatom.ru:3005/auth/login`, userLogin);
-        const { accessToken } = resp.data;
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        localStorage.setItem('token', accessToken);
-        const response = await getQuery(`http://nsk-deb-srv.nevatom.ru:3005/auth/me`);
-        commit('auth_success', { user: response.data, accessToken });
-      }
-      catch (error) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh');
-        throw error;
-      }
+    login({ commit }, userLogin) {
+      return new Promise((resolve, reject) => {
+        const server = SERVERS_LIST[0];
+        localStorage.setItem('server_port', server.port);
+        api.post(`${this.getters.getHost}/services/login`, userLogin)
+          .then((resp) => {
+            const { token, user, refresh } = resp.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('refresh', refresh);
+            commit('auth_success', { user, token, refresh });
+            resolve(resp);
+          })
+          .catch((err) => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh');
+            reject(err);
+          });
+      });
+    },
+    logout({ commit }) {
+      return new Promise((resolve) => {
+        const { refresh } = this.state;
+        if (refresh) {
+          api.post(`${this.getters.getHost}/services/logout`, { refresh }).then((resp) => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh');
+            localStorage.removeItem('server_port');
+            commit('logout');
+            console.log(resp.data.message);
+            resolve();
+          });
+        } else {
+          resolve();
+        }
+      });
+    },
+    isAuth({ commit }) {
+      const {
+        token,
+        refresh,
+      } = this.state;
+      return new Promise((resolve, reject) => {
+        if (token) {
+          api.post(`${this.getters.getHost}/services/auth`, { token }).then((resp) => {
+            console.log('Успешная аутентификация');
+            commit('auth_success', { user: resp.data.user, refresh, token });
+            resolve(resp.data);
+          }).catch(() => {
+            console.log('Ошибка аутентификации');
+            api.post(`${this.getters.getHost}/services/refresh`, { refresh })
+              .then((resp) => {
+                console.log('Успешное обновление');
+                commit('auth_success', { user: resp.data.user, refresh, token: resp.data.token });
+                localStorage.setItem('token', resp.data.token);
+                resolve(resp.data);
+              }).catch((err) => {
+                commit('logout');
+                console.log('Ошибка обновления');
+                reject(err.response.data);
+              });
+          });
+        } else {
+          reject();
+        }
+      });
+    },
   },
-  async logout({ commit }) {
-    try {
-      await postQuery(`http://nsk-deb-srv.nevatom.ru:3005/auth/logout`);
-      localStorage.removeItem('token');
-      commit('logout');
-    } catch (error) {
-      console.error('Ошибка при выходе:', error);
-      localStorage.removeItem('token');
-      commit('logout');
-      throw error;
-    }
-  },
-  async initializeAuth({ commit }) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.log('Токен отсутствует');
-      return false;
-    }
-    try {
-      const resp = await getQuery(`http://nsk-deb-srv.nevatom.ru:3005/auth/me`);
-      commit('initUser', { user: resp.data });
-      return true;
-    } catch (error) {
-      console.log('Ошибка проверки токена:', error);
-      commit('logout');
-      return false;
-    }
-  },
-  tokenDied({ commit }) {
-    commit('logout');
-  },
-},
   getters: {
-  getAuth(state) {
-    return !!state.isAuth;
+    getAuth: (state) => state.isAuth,
+    getHost: (state) => {
+        return `${process.env.API_DEV}:${state.currentServer.port}`;
+    },
+    getPort: (state) => state.currentServer.port,
   },
-  getTestSrv: (state) => state.testSrv,
-},
 });
+
+function getQuery(path, config) {
+  return new Promise((resolve, reject) => {
+    api.get(path, config).then((res) => resolve(res)).catch((err) => {
+      storeVue.dispatch('isAuth').then(() => {
+        api.get(path, config).then((res) => resolve(res)).catch(() => reject(err));
+      }).catch(() => reject(err));
+    });
+  });
+}
+function postQuery(path, obj, config) {
+  return new Promise((resolve, reject) => {
+    api.post(path, obj, config).then((res) => resolve(res)).catch((err) => {
+      storeVue.dispatch('isAuth').then(() => {
+        api.post(path, obj, config).then((res) => resolve(res)).catch(() => reject(err));
+      }).catch(() => reject(err));
+    });
+  });
+}
+
+function deleteQuery(path) {
+  return new Promise((resolve, reject) => {
+    api.delete(path).then((res) => resolve(res)).catch((err) => {
+      storeVue.dispatch('isAuth').then(() => {
+        api.delete(path).then((res) => resolve(res)).catch(() => reject(err));
+      }).catch(() => reject(err));
+    });
+  });
+}
+
+function currentUser() {
+  return storeVue.state.user;
+}
+
+function isPermissions(permission) {
+  const route = useRoute();
+  try {
+    const { requiresAuth, permissionsBlock } = route.meta;
+    if (requiresAuth) {
+      console.log((permissionsBlock[storeVue.state.user.role] || []).includes(permission));
+      return (permissionsBlock[storeVue.state.user.role] || []).includes(permission);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function isOpen(ws) { return ws.readyState === ws.OPEN; }
+
+function isDateInRange(dateToCheck, startDate, endDate) {
+  const checkDate = moment(dateToCheck);
+  const start = moment(startDate);
+  const end = moment(endDate);
+  return checkDate.isBetween(start, end, null, '[]');
+}
+// возвращает элемент из списка по id идентификатору
+function getObject(array, prop, value) {
+  for (let index = 0; index < array.length; index += 1) {
+    const element = array[index];
+    if (element[prop] === value) {
+      return element;
+    }
+  }
+  return null;
+}
+
+function getTimeFormat(val) {
+  return moment(val).format('HH:mm:ss DD.MM.YYYY');
+}
+function getTimeFormatForce(val, f) {
+  return moment(val).format(f);
+}
+
+const STRING_NO_SELECT = 'Не выбрано';
+
+const OPTION_ALL = {
+  id: -1,
+  name: 'Все',
+};
+
 function getRoles() {
   return [
     {
@@ -109,82 +228,74 @@ function getRoles() {
     },
   ];
 }
-function currentUser() {
-  return storeVue.state.user;
-}
-// function getQuery(path) {
-//   return new Promise((resolve, reject) => {
-//     api.get(path).then((res) => resolve(res)).catch((err) => reject(err));
-//   });
-// }
-// function postQuery(path, obj) {
-//   return new Promise((resolve, reject) => {
-//     api.post(path, obj).then((res) => resolve(res)).catch((err) => reject(err));
-//   });
-// }
-async function getQuery(path) {
+
+
+function getNameShort(_name) {
   try {
-    const res = await api.get(path);
-    return res;
-  } catch (err) {
-    console.log(err);
-    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-      try {
-        const refreshResponse = await api.post('http://nsk-deb-srv.nevatom.ru:3005/auth/refresh');
-        const newToken = refreshResponse.data.accessToken;
-
-        localStorage.setItem('token', newToken);
-        api.defaults.headers.Authorization = `Bearer ${newToken}`;
-
-        return await api.get(path);
-      } catch (refreshError) {
-        console.error('Refresh token failed:', refreshError);
-        throw refreshError;
-      }
+    const n = _name.split(' ').filter((e) => e !== '');
+    if (n.length !== 3) {
+      return _name;
     }
-    throw err;
+    return `${n[0]} ${n[1] ? `${n[1][0]}.` : ''}${n[1] ? `${n[2][0]}.` : ''}`;
+  } catch  {
+    return _name;
   }
-}
-function postQuery(path, obj) {
-  return new Promise((resolve, reject) => {
-    api.post(path, obj).then((res) => resolve(res))
-      .catch(async (err) => {
-        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-          try {
-            const refreshResponse = await api.post('http://nsk-deb-srv.nevatom.ru:3005/auth/refresh');
-            const newToken = refreshResponse.data.accessToken;
-            localStorage.setItem('token', newToken);
-            api.defaults.headers.Authorization = `Bearer ${newToken}`;
-            const retryResponse = await api.post(path, obj);
-            resolve(retryResponse);
-          } catch (refreshError) {
-            reject(refreshError);
-          }
-        } else {
-          reject(err);
-        }
-      });
-  });
-}
-
-function deleteQuery(path) {
-  return new Promise((resolve, reject) => {
-    api.delete(path).then((res) => resolve(res)).catch((err) => reject(err));
-  });
 }
 function isAdmin() {
-  if (currentUser()) {
-    return currentUser().role === 'admin';
-  }
-  return false
+  return currentUser().role === 'admin';
+}
+function isExpert() {
+  return currentUser().role === 'expert' || isAdmin();
 }
 
+// возвращает новый ID исходя из объектов списка
+function getNewId(existingItems = []) {
+  // Находим максимальный ID среди всех элементов (включая вложенные)
+  let maxId = 0;
+
+  const findMaxId = (items) => {
+    items.forEach((item) => {
+      if (item.id > maxId) {
+        maxId = item.id;
+      }
+      if (item.children && item.children.length > 0) {
+        findMaxId(item.children);
+      }
+    });
+  };
+
+  findMaxId(existingItems);
+  return maxId + 1;
+}
+
+const TT_TYPE_FLAG = 'TINYINT(1)';
+
 export default {
+  SERVERS_LIST,
+  TT_TYPE_FLAG,
+  host() {
+    return storeVue.getters.getHost;
+  },
+  port() {
+    return storeVue.getters.getPort;
+  },
+  getNameShort,
+  isOpen,
+  state: stt,
+  getObject,
+  getTimeFormat,
+  getTimeFormatForce,
   storeVue,
+  isPermissions,
+  currentUser,
+  getRoles,
+  getNewId,
   getQuery,
   postQuery,
   deleteQuery,
-  currentUser,
-  getRoles,
   isAdmin,
-}
+  isExpert,
+  STRING_NO_SELECT,
+  isDateInRange,
+  OPTION_ALL
+};
