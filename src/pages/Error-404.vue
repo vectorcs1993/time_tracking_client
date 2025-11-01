@@ -17,6 +17,5 @@
 
 <script setup>
 
-document.getElementById('loading').style.display = 'none';
 
 </script>

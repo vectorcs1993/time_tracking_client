@@ -59,9 +59,8 @@ function login() {
         store.storeVue.state.upd();
       }
     });
-  }).catch((err) => {
+  }).catch(() => {
     loadLogin.value = false;
-    console.log(err);
     props.showError('Вход не выполнен');
   });
 }

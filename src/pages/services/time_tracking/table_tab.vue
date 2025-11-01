@@ -12,8 +12,8 @@
       </PPTab>
     </div>
     <!-- Таблица -->
-    <!-- v-if="isAllowView(curentConfig)" -->
-    <q-table ref="table" dense
+
+    <q-table v-if="isAllowView(curentConfig)" ref="table" dense
       :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
       :dark="props.dark" square flat :rows="trackings" :columns="columns" row-key="id" virtual-scroll wrap-cells
       :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
@@ -195,7 +195,7 @@
         </q-td>
       </template>
     </q-table>
-    <!-- <q-card-section v-else>Просмотр запрещен</q-card-section> -->
+    <q-card-section v-else>Просмотр запрещен</q-card-section>
   </div>
 </template>
 <script setup>
@@ -684,7 +684,7 @@ function update(callback) {
     configs.value.length = 0;
     getQuery(`${host()}/services/genprice/TimeTrackingConfig`).then((respC) => {
       respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
-        
+
         conf.allow_views = JSON.parse(conf.allow_views);
 
         conf.allow_creates = JSON.parse(conf.allow_creates);
