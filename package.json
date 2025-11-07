@@ -1,18 +1,14 @@
 {
-  "name": "pp-users-client",
+  "name": "time_tracking_client",
   "version": "0.0.4",
   "description": "A Quasar Project",
-  "productName": "pp-users-client",
+  "productName": "time_tracking_client",
   "author": "vectorcs1993 <vectorcs@mail.ru>",
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
-    "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
-    "test": "echo \"No test specified\" && exit 0",
     "dev": "npx quasar dev",
-    "build": "npx quasar build",
-    "postinstall": "npx quasar prepare"
+    "build": "npx quasar build"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
