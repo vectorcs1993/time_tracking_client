@@ -1,7 +1,7 @@
 {
   "name": "time_tracking_client",
-  "version": "0.0.4",
-  "description": "A Quasar Project",
+  "version": "0.1",
+  "description": "Time Tracking Client Project",
   "productName": "time_tracking_client",
   "author": "vectorcs1993 <vectorcs@mail.ru>",
   "private": true,
