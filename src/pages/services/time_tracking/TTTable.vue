@@ -2,20 +2,16 @@
   <div @keyup.esc="handleEsc" @click="selectRow" :style="`width: 100%; height: ${props.contentHeight}px;`">
     <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
       <!-- Текущая таблица -->
-      <PPTab v-model="tabConf" :dark="props.dark" @update:model-value="() => {
-        load = true;
-        updateInputFilter();
-      }">
+      <PPTab v-model="tabConf" :dark="props.dark" @update:model-value="updateTab">
         <q-tab v-for="conf in configs" :key="conf" :name="`conf${conf.id}`">
           {{ conf.name }}
         </q-tab>
       </PPTab>
     </div>
     <!-- Таблица -->
-
-    <q-table v-if="isAllowView(curentConfig)" ref="table" dense
+    <q-table v-if="curentConfig" ref="table" dense
       :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-      :dark="props.dark" square flat :rows="trackings" :columns="columns" row-key="id" virtual-scroll wrap-cells
+      :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
       :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
       selection="multiple" binary-state-sort :loading="load" :color="`${props.dark ? 'orange' : 'green'}`"
       :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]"
@@ -26,14 +22,13 @@
       </template>
       <template v-slot:top>
         <q-card-actions class="row q-gutter-sm full-width items-center">
-          <PPBtn label="" icon="sync" :click="update" :dark="props.dark" />
+          <PPBtn label="" icon="sync" :click="requestRecords" :dark="props.dark" />
           <PPBtnAdd v-if="isAllowCreate()" :click="actionCreate" :dark="props.dark" />
           <PPBtn v-if="isAllowCreate() && selected.length === 1" label="Копировать" icon="content_copy"
             :click="actionCopy" :dark="props.dark" />
           <PPBtnDelete v-if="isAllowCreate() && isAllowDeleted()" :click="() => {
             props.showConfirm('Удалить записи?', actionDelete);
           }" :dark="props.dark" />
-          <q-space />
           <!-- Фильтр подразделения -->
           <PPSimpleSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
             :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark" />
@@ -64,6 +59,7 @@
               </q-item>
             </template>
           </q-select>
+          <q-space />
           <!-- Фильтр период -->
           <q-select class="text-size" square :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
             :dark="props.dark" dense options-selected-class="text-grey" style="width: 200px;" label="Период"
@@ -98,25 +94,8 @@
               @update:model-value="updateInputFilter">
             </q-input>
           </div>
-          <!-- Фильтр сортировка -->
-          <q-select class="text-size" square :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
-            :dark="props.dark" dense options-selected-class="text-grey" label="Сортировать" :options="type_sorts"
-            option-value="id" v-model="inputFilter.sorted" @update:model-value="updateInputFilter"
-            popup-content-class="text-size">
-            <template v-slot:selected-item="scope">
-              {{ scope.opt.name }}
-            </template>
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section>
-                  <q-item-label>{{ scope.opt.name }} </q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
           <!-- Поиск -->
           <PPSearchInput v-model="inputFilter.search" @update:model-value="updateInputFilter" :dark="props.dark" />
-          <PPBtn v-if="trackings.length > 0" label="Экспорт в EXCEL" :click="exportReport" :dark="props.dark" />
         </q-card-actions>
       </template>
       <template v-slot:header-cell="props">
@@ -127,9 +106,15 @@
         </q-th>
       </template>
       <template v-slot:pagination>
-        {{ returnSelectedInfo() }}
+        <div class="row q-gutter-sm items-center">
+          <div class="text-size">{{ returnSelectedInfo() }}</div>
+          <!-- Фильтр сортировка -->
+          <PPSimpleSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
+            @update:model-value="updateInputFilter" :dark="props.dark" />
+          <PPBtn v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" :click="exportReport"
+            :dark="props.dark" />
+        </div>
       </template>
-
       <template v-slot:body-cell="props">
         <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)}`">
           <q-input class="text-size " input-style="text-align: center;"
@@ -151,7 +136,7 @@
               save(props.col.name, props.row[props.col.name]);
             }">
           </q-input>
-          <q-input input-class="text-size"
+          <q-input input-class="text-size" input-style="text-align: center;"
             v-else-if="props.col.type == 'date' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, true)"
             type="date" mask="####.##.##" :dark="props.dark" dense square
             :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
@@ -191,7 +176,7 @@
           </q-select>
           <div :class="`text-size ${props.col.type !== 'textarea' ? 'pp-line-text' : ''}`" v-else
             style="white-space: pre-line; padding: 12px; text-align: center;"> {{
-            props.value }}</div>
+              props.value }}</div>
         </q-td>
       </template>
     </q-table>
@@ -201,41 +186,29 @@
 <script setup>
 import {
   ref,
-  inject,
   defineProps,
   onMounted,
-  computed,
 } from 'vue';
-import axios from 'axios';
+import { useAuthStore } from 'src/stores/auth.js';
 import moment from 'moment/moment';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import PPBtn from 'src/components/buttons/PPBtn.vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPBtnDelete from 'src/components/buttons/PPBtnDelete.vue';
-import PPTab from 'src/components/tabs/PPTab.vue';
-import PPLoading from 'src/components/loadings/PPLoading.vue';
+import PPTab from 'src/components/PPTab.vue';
+import PPLoading from 'src/components/PPLoading.vue';
 import PPCheckbox from 'src/components/PPCheckbox.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 import PPSimpleSelect from 'src/components/selects/PPSimpleSelect.vue';
-
-const {
-  host,
-  getTimeFormatForce,
-  getQuery,
-  postQuery,
-  currentUser,
-  getNameShort,
-  isDateInRange,
-  OPTION_ALL,
-  TT_TYPE_FLAG,
-} = inject('store');
+import { getNameShort, isDateInRange, OPTION_ALL, TT_TYPE_FLAG } from './fun';
 
 const load = ref(false);
-
+const authStore = useAuthStore();
 const props = defineProps({
   showInfo: Function,
   showConfirm: Function,
+  showError: Function,
   contentHeight: Number,
   dark: Boolean,
 });
@@ -246,7 +219,7 @@ const branches = ref([]);
 const projects = ref([]);
 const sources = ref([]);
 const activities = ref([]);
-const trackings = ref([]);
+const records = ref([]);
 const fields = ref([]);
 const type_product = [
   {
@@ -334,9 +307,9 @@ function isSelect(_id) {
 function isAllowDeleted(_id) {
   try {
     if (curentConfig.value.cols.length > 0) {
-      const del = selected.value.length > 0 && curentConfig.value.allow_delete.find((b) => b === currentUser().branch);
+      const del = selected.value.length > 0 && curentConfig.value.allow_delete.find((b) => b === authStore.getUser.branch);
       if (_id !== undefined) {
-        return del && (curentConfig.value.deleteOnlySome ? (trackings.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === currentUser().email).id) : true);
+        return del && (curentConfig.value.deleteOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === authStore.getUser.email).id) : true);
       }
       return del;
     }
@@ -369,11 +342,11 @@ function getCustomStyle(row, col) {
 function isAllowEdit(_id, _col, needSelect) {
   try {
     if (curentConfig.value.cols.length > 0) {
-      const changeRow = (needSelect ? selected.value.length > 0 : true) && curentConfig.value.allow_edit.find((b) => b === currentUser().branch) !== undefined;
+      const changeRow = (needSelect ? selected.value.length > 0 : true) && curentConfig.value.allow_edit.find((b) => b === authStore.getUser.branch) !== undefined;
       const findColFromConf = curentConfig.value.cols.find((c) => c.field === _col);
-      const changeCol = findColFromConf.allow_edit.find((ae) => ae === currentUser().branch) !== undefined;
+      const changeCol = findColFromConf.allow_edit.find((ae) => ae === authStore.getUser.branch) !== undefined;
       if (_id !== undefined) {
-        return changeRow && changeCol && (curentConfig.value.changeOnlySome ? (trackings.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === currentUser().email).id) : true);
+        return changeRow && changeCol && (curentConfig.value.changeOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === authStore.getUser.email).id) : true);
       }
       return changeRow && changeCol;
     }
@@ -385,18 +358,19 @@ function isAllowEdit(_id, _col, needSelect) {
 }
 function isAllowView(val) {
   try {
-    return val.allow_views.find((b) => b === currentUser().branch);
+    return val.allow_views.find((b) => b === authStore.getUser.branch);
   } catch (err) {
     console.log(err);
     return false;
   }
 }
-
+function getTimeFormatForce(val, f) {
+  return moment(val).format(f);
+}
 function isAllowCreate() {
   try {
-    return curentConfig.value?.allow_creates.find((b) => b === currentUser().branch);
-  } catch (err) {
-    console.log(err);
+    return curentConfig.value?.allow_creates.find((b) => b === authStore.getUser.branch);
+  } catch {
     return false;
   }
 }
@@ -655,7 +629,72 @@ function getItem(val) {
   }
   return Number(localStorage.getItem(val));
 }
-
+function requestRecords(callback) {
+  const day = moment();
+  const yesterday = day.clone().subtract(1, 'days');
+  const yesterday7 = day.clone().subtract(7, 'days');
+  const yesterday30 = day.clone().subtract(30, 'days');
+  const yesterday180 = day.clone().subtract(180, 'days');
+  // дата старта и финиша - сегодня
+  if (inputFilter.value.period.id === 1) {
+    inputFilter.value.dateStart = day.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
+  } else if (inputFilter.value.period.id === 3) { // вчера
+    inputFilter.value.dateStart = yesterday.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = yesterday.format('YYYY-MM-DD');
+  } else if (inputFilter.value.period.id === 4) { // 7 дней
+    inputFilter.value.dateStart = yesterday7.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
+  } else if (inputFilter.value.period.id === 5) { // 30 дней
+    inputFilter.value.dateStart = yesterday30.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
+  } else if (inputFilter.value.period.id === 6) { // 180 дней
+    inputFilter.value.dateStart = yesterday180.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
+  } else if (inputFilter.value.period.id === 2) { // все данные
+    inputFilter.value.dateStart = 'null';
+    inputFilter.value.dateFinish = 'null';
+  }
+  authStore.authorizedRequest('get', `/all_records?order=${inputFilter.value.sorted.id
+    }&branch=${inputFilter.value.branch.id
+    }&type_work=${inputFilter.value.type_work.id
+    }&activity=${inputFilter.value.activity.id
+    }&user=${inputFilter.value.user.id
+    }&dS=${inputFilter.value.dateStart
+    }&dF=${inputFilter.value.dateFinish}`).then((res) => { // &columns=${columns.value.map((c) => c.name).join(',')}
+      records.value.length = 0;
+      records.value.push(...res.data.map((rec) => ({
+        ...rec,
+        branch: getObject(branches.value, rec.branch),
+        user: getObject(users.value, rec.user),
+        type_work: getObject(type_works, rec.type_work),
+        type_activity: getObject(rec.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value, rec.type_activity),
+        type_source: getObject(sources.value, rec.type_source),
+        type_product: getObject(type_product, rec.type_product),
+        createdRaw: rec.createdAt,
+        createdAt: moment(rec.createdAt).format('YYYY-MM-DD'),
+        updatedRaw: rec.updatedAt,
+        updatedAt: moment(rec.updatedAt).format('YYYY-MM-DD'),
+        dateStartOrderRaw: rec.dateStartOrder,
+        dateStartOrder: moment(rec.dateStartOrder).format('YYYY-MM-DD'),
+        dateFinishOrderRaw: rec.dateFinishOrder,
+        dateFinishOrder: moment(rec.dateFinishOrder).format('YYYY-MM-DD'),
+      })));
+      load.value = false;
+      if (inputFilter.value.sorted.id === 'ASC') {
+        setImmediate(() => table.value.scrollTo(records.value.length - 1, 'end-force'));
+      }
+      // isFullscreen.value = localStorage.getItem('fullscreen') === 'true';
+      // if (isFullscreen.value) {
+      //   table.value.setFullscreen();
+      // }
+      if (callback) {
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }
+    }).catch(() => props.showError('Ошибка загрузки данных'));
+}
 function update(callback) {
   try {
     if (localStorage.getItem('time_tr_tabs')) {
@@ -676,17 +715,13 @@ function update(callback) {
     if (localStorage.getItem('filter_date_finish')) {
       inputFilter.value.dateFinish = localStorage.getItem('filter_date_finish');
     }
-
     selected.value.length = 0;
-    trackings.value.length = 0;
     load.value = true;
     // извлечение конфигурации таблицы
     configs.value.length = 0;
-    getQuery(`${host()}/services/genprice/TimeTrackingConfig`).then((respC) => {
+    authStore.authorizedRequest('get', `all_configs`).then((respC) => {
       respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
-
         conf.allow_views = JSON.parse(conf.allow_views);
-
         conf.allow_creates = JSON.parse(conf.allow_creates);
         conf.allow_delete = JSON.parse(conf.allow_delete);
         conf.allow_edit = JSON.parse(conf.allow_edit);
@@ -697,7 +732,7 @@ function update(callback) {
       });
 
       curentConfig.value = getObject(configs.value, getItem('config_time_traking'));
-      console.log(curentConfig.value);
+
       if (!curentConfig.value) {
         [curentConfig.value] = configs.value;
       }
@@ -705,11 +740,9 @@ function update(callback) {
       tabConf.value = `conf${curentConfig.value.id}`;
       console.log(tabConf.value);
       inputFilter.value.on = curentConfig.value.filters;
-
-      getQuery(`${host()}/services/time_tracking_fields`).then((respFl) => {
+      columns.value.length = 0;
+      authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
         fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
-
-        columns.value.length = 0;
         // формирование столбцов
         if (curentConfig.value.cols.length > 0) {
           curentConfig.value.cols.forEach((col) => {
@@ -756,21 +789,21 @@ function update(callback) {
 
         // целевой объект
         activities.value.length = 0;
-        getQuery(`${host()}/services/genprice/TimeTrackingActivity`).then((respA) => {
+        authStore.authorizedRequest('get', `all_activities`).then((respA) => {
           activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
           if (!inputFilter.value.activity) {
             inputFilter.value.activity = getObject(inputFilter.value.activities, -1);
           }
           // источники поступления задач
           sources.value.length = 0;
-          getQuery(`${host()}/services/genprice/TimeTrackingSource`).then((respS) => {
+          authStore.authorizedRequest('get', `all_sources`).then((respS) => {
             sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
             projects.value.length = 0;
             // проекты
-            getQuery(`${host()}/services/genprice/TimeTrackingProject`).then((respP) => {
+            authStore.authorizedRequest('get', `all_projects`).then((respP) => {
               projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
               branches.value.length = 0;
-              getQuery(`${host()}/services/genprice/Branch`).then((respB) => {
+              authStore.authorizedRequest('get', `branches`).then((respB) => {
                 branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
                 inputFilter.value.branches.length = 0;
                 inputFilter.value.branches.push(OPTION_ALL);
@@ -794,7 +827,7 @@ function update(callback) {
                 }
 
                 users.value.length = 0;
-                getQuery(`${host()}/services/users`).then((respU) => {
+                authStore.authorizedRequest('get', `users`).then((respU) => {
                   users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
                   users.value.forEach((u) => {
                     u.name = getNameShort(u.name);
@@ -818,63 +851,7 @@ function update(callback) {
                   if (!inputFilter.value.sorted) {
                     [inputFilter.value.sorted] = type_sorts;
                   }
-                  const day = moment();
-                  const yesterday = day.clone().subtract(1, 'days');
-                  const yesterday7 = day.clone().subtract(7, 'days');
-                  const yesterday30 = day.clone().subtract(30, 'days');
-                  const yesterday180 = day.clone().subtract(180, 'days');
-                  // дата старта и финиша - сегодня
-                  if (inputFilter.value.period.id === 1) {
-                    inputFilter.value.dateStart = day.format('YYYY-MM-DD');
-                    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
-                  } else if (inputFilter.value.period.id === 3) { // вчера
-                    inputFilter.value.dateStart = yesterday.format('YYYY-MM-DD');
-                    inputFilter.value.dateFinish = yesterday.format('YYYY-MM-DD');
-                  } else if (inputFilter.value.period.id === 4) { // 7 дней
-                    inputFilter.value.dateStart = yesterday7.format('YYYY-MM-DD');
-                    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
-                  } else if (inputFilter.value.period.id === 5) { // 30 дней
-                    inputFilter.value.dateStart = yesterday30.format('YYYY-MM-DD');
-                    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
-                  } else if (inputFilter.value.period.id === 6) { // 180 дней
-                    inputFilter.value.dateStart = yesterday180.format('YYYY-MM-DD');
-                    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
-                  } else if (inputFilter.value.period.id === 2) { // все данные
-                    inputFilter.value.dateStart = 'null';
-                    inputFilter.value.dateFinish = 'null';
-                  }
-                  getQuery(`${host()}/services/time_tracking?order=${inputFilter.value.sorted.id}&branch=${inputFilter.value.branch.id}&type_work=${inputFilter.value.type_work.id}&activity=${inputFilter.value.activity.id}&user=${inputFilter.value.user.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}`).then((res) => {
-                    res.data.forEach((element) => {
-                      element.branch = getObject(branches.value, element.branch);
-                      element.user = getObject(users.value, element.user);
-                      element.type_work = getObject(type_works, element.type_work);
-                      element.type_activity = getObject(element.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value, element.type_activity);
-                      element.type_source = getObject(sources.value, element.type_source);
-                      element.type_product = getObject(type_product, element.type_product);
-                      element.createdRaw = element.createdAt;
-                      element.createdAt = moment(element.createdAt).format('YYYY-MM-DD');
-                      element.updatedRaw = element.updatedAt;
-                      element.updatedAt = moment(element.updatedAt).format('YYYY-MM-DD');
-                      element.dateStartOrderRaw = element.dateStartOrder;
-                      element.dateStartOrder = moment(element.dateStartOrder).format('YYYY-MM-DD');
-                      element.dateFinishOrderRaw = element.dateFinishOrder;
-                      element.dateFinishOrder = moment(element.dateFinishOrder).format('YYYY-MM-DD');
-                      trackings.value.push(element);
-                    });
-                    load.value = false;
-                    if (inputFilter.value.sorted.id === 'ASC') {
-                      setImmediate(() => table.value.scrollTo(trackings.value.length - 1, 'end-force'));
-                    }
-                    // isFullscreen.value = localStorage.getItem('fullscreen') === 'true';
-                    // if (isFullscreen.value) {
-                    //   table.value.setFullscreen();
-                    // }
-                    if (callback) {
-                      if (typeof callback === 'function') {
-                        callback();
-                      }
-                    }
-                  });
+                  requestRecords(callback);
                 }).catch((err) => {
                   console.log(err);
                 });
@@ -888,9 +865,11 @@ function update(callback) {
     });
   } catch (err) {
     console.log(err);
-    trackings.value.length = 0;
+    records.value.length = 0;
   }
 }
+
+
 function actionCreate() {
   const date = moment().format('YYYY-MM-DD');
   localStorage.setItem('filter_date_finish', date);
@@ -901,8 +880,8 @@ function actionCreate() {
 
   localStorage.setItem('filter_period', inputFilter.value.period.id);
   const createObject = {
-    branch: branches.value.find((b) => b.id === currentUser().branch).id,
-    user: users.value.find((u) => u.email === currentUser().email).id,
+    branch: branches.value.find((b) => b.id === authStore.getUser.branch).id,
+    user: users.value.find((u) => u.email === authStore.getUser.email).id,
     type_activity: activities.value[0].id, // при условии что type_work = 0 (по умолчанию в БД)
     type_source: sources.value.find((s) => s.id === 9).id, // НЕТ по умолчанию
     dateStartOrder: date,
@@ -916,11 +895,11 @@ function actionCreate() {
       createObject.type_activity = inputFilter.value.activity.id;
     }
   }
-  postQuery(`${host()}/services/genprice/TimeTracking/create`, createObject).then((res) => {
+  authStore.authorizedRequest('post', `/services/genprice/TimeTracking/create`, createObject).then((res) => {
     if (res.data.result === 'ok') {
       update(() => {
         selected.value.length = 0;
-        const s = trackings.value.find((r) => r.id === res.data.data.id);
+        const s = records.value.find((r) => r.id === res.data.data.id);
         if (s) {
           selected.value.push(s);
         }
@@ -936,18 +915,18 @@ function actionCreate() {
 function actionCopy() {
   const date = moment().format('YYYY-MM-DD');
   localStorage.setItem('filter_date_finish', date);
-  getQuery(`${host()}/services/genprice/TimeTracking/${selected.value[0].id}`).then((res) => {
+  authStore.authorizedRequest('get', `/services/genprice/TimeTracking/${selected.value[0].id}`).then((res) => {
     const copyingObject = res.data.data;
     copyingObject.id = undefined;
     copyingObject.createdAt = undefined;
     copyingObject.updatedAt = undefined;
-    copyingObject.branch = branches.value.find((b) => b.id === currentUser().branch).id;
-    copyingObject.user = users.value.find((u) => u.email === currentUser().email).id;
-    postQuery(`${host()}/services/genprice/TimeTracking/create`, copyingObject).then((resCopy) => {
+    copyingObject.branch = branches.value.find((b) => b.id === authStore.getUser.branch).id;
+    copyingObject.user = users.value.find((u) => u.email === authStore.getUser.email).id;
+    authStore.authorizedRequest('post', `/services/genprice/TimeTracking/create`, copyingObject).then((resCopy) => {
       if (resCopy.data.result === 'ok') {
         update(() => {
           selected.value.length = 0;
-          const s = trackings.value.find((r) => r.id === resCopy.data.data.id);
+          const s = records.value.find((r) => r.id === resCopy.data.data.id);
           if (s) {
             selected.value.push(s);
           }
@@ -965,7 +944,7 @@ function actionDelete() {
   const deletedQuery = [];
   selected.value.forEach((s) => {
     if (isAllowDeleted(s.id)) {
-      deletedQuery.push(getQuery(`${host()}/services/genprice/TimeTracking/delete/${s.id}`));
+      deletedQuery.push(authStore.authorizedRequest('get', `/services/genprice/TimeTracking/delete/${s.id}`));
     }
   });
   Promise.all(deletedQuery).then(() => {
@@ -983,7 +962,7 @@ function save(col, value) {
   if (value !== undefined) {
     const updateRow = {};
     updateRow[col] = value;
-    postQuery(`${host()}/services/genprice/TimeTracking/update/${selected.value[0].id}`, updateRow).then(() => {
+    authStore.authorizedRequest('post', `/services/genprice/TimeTracking/update/${selected.value[0].id}`, updateRow).then(() => {
       // console.log(res);
     }).catch((err) => {
       console.log(err);
@@ -1008,9 +987,7 @@ function updateFilterTypeWork() {
     [inputFilter.value.activity] = inputFilter.value.activities;
   }
 }
-
-function updateInputFilter() {
-  selected.value.length = 0;
+function saveForLocalStorage() {
   localStorage.setItem('filter_user', inputFilter.value.user.id);
   localStorage.setItem('filter_branch', inputFilter.value.branch.id);
   localStorage.setItem('filter_sort', inputFilter.value.sorted.id);
@@ -1019,12 +996,19 @@ function updateInputFilter() {
   localStorage.setItem('config_time_traking', Number(tabConf.value.substr(4)));
   localStorage.setItem('filter_date_start', inputFilter.value.dateStart);
   localStorage.setItem('filter_date_finish', inputFilter.value.dateFinish);
-  if (String(inputFilter.value.search) === 'null') {
-    inputFilter.value.search = '';
-  }
+  if (String(inputFilter.value.search) === 'null') inputFilter.value.search = '';
   localStorage.setItem('filter_period', inputFilter.value.period.id);
   localStorage.setItem('filter_search', inputFilter.value.search);
+}
+function updateTab() {
+  selected.value.length = 0;
+  saveForLocalStorage();
   update();
+}
+function updateInputFilter() {
+  selected.value.length = 0;
+  saveForLocalStorage();
+  requestRecords();
 }
 function updateTypeWork(row) {
   const typeWId = row.type_work.id;
@@ -1040,45 +1024,46 @@ function returnSelectedInfo() {
   const sum = selected.value.reduce((acc, current) => acc + Number(current.total_time), 0);
   const average = sum / selected.value.length;
   const max = Math.max.apply(null, selected.value.map((obj) => Number(obj.total_time)));
-  return selected.value.length === 0 ? `Всего объектов: ${trackings.value.length}` : `Объектов выбрано:
-  ${selected.value.length} из ${trackings.value.length}; Общее время: ${sum} мин (${(sum / 60).toFixed(1)} ч); Среднее время: ${average.toFixed(1)} мин (${(average / 60).toFixed(1)} ч);
+  return selected.value.length === 0 ? `Всего записей: ${records.value.length}` : `Записей выбрано:
+  ${selected.value.length} из ${records.value.length}; Общее время: ${sum} мин (${(sum / 60).toFixed(1)} ч); Среднее время: ${average.toFixed(1)} мин (${(average / 60).toFixed(1)} ч);
   Максимальное время: ${max} мин (${(max / 60).toFixed(1)} ч);`;
 }
-const filteredRows = computed(() => {
-  if (!inputFilter.value.search) return trackings.value;
-  return trackings.value.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(inputFilter.value.search.toLowerCase())));
-});
-function exportReport() {
-  const data = {
-    columns: columns.value,
-    rows: filteredRows.value.map((r) => {
-      const e = { ...r };
-      columns.value.forEach((col) => {
-        e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
-      });
-      return e;
-    }),
-  };
-  axios({
-    url: `${host()}/services/time_tracking_report_excel`,
-    method: 'POST',
-    responseType: 'blob',
-    data,
-  }).then((response) => {
-    const fileURL = window.URL.createObjectURL(
-      new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    );
-    const fileLink = document.createElement('a');
-    fileLink.href = fileURL;
-    fileLink.setAttribute('download', `Отчёт_${curentConfig.value.name}.xlsx`);
-    document.body.appendChild(fileLink);
-    fileLink.click();
-  }).catch((err) => {
-    console.log(err);
+// const filteredRows = computed(() => {
+//   if (!inputFilter.value.search) return records.value;
+//   return records.value.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(inputFilter.value.search.toLowerCase())));
+// });
+// function exportReport() {
+//   const data = {
+//     columns: columns.value,
+//     rows: filteredRows.value.map((r) => {
+//       const e = { ...r };
+//       columns.value.forEach((col) => {
+//         e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
+//       });
+//       return e;
+//     }),
+//   };
+//   axios({
+//     url: `/services/time_tracking_report_excel`,
+//     method: 'POST',
+//     responseType: 'blob',
+//     data,
+//   }).then((response) => {
+//     const fileURL = window.URL.createObjectURL(
+//       new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+//     );
+//     const fileLink = document.createElement('a');
+//     fileLink.href = fileURL;
+//     fileLink.setAttribute('download', `Отчёт_${curentConfig.value.name}.xlsx`);
+//     document.body.appendChild(fileLink);
+//     fileLink.click();
+//   }).catch((err) => {
+//     console.log(err);
 
-    props.showInfo(err);
-  });
-}
+//     props.showInfo(err);
+//   });
+// }
+
 onMounted(() => {
   update();
 });

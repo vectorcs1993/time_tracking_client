@@ -9,13 +9,12 @@
         Страницы не существует
       </div>
 
-      <q-btn square class="q-mt-xl" color="secondary" text-color="white" unelevated to="/home" label="Главная страница"
+      <q-btn square class="q-mt-xl" color="secondary" text-color="white" unelevated to="/" label="Главная страница"
         no-caps />
     </div>
   </div>
 </template>
 
 <script setup>
-
-
+document.getElementById('loading').style.display = 'none';
 </script>

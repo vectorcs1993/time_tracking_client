@@ -39,7 +39,6 @@
 import {
   defineComponent, ref,
 } from 'vue';
-import Table from 'src/components/tables/table_simple.vue';
 import Table_v2 from 'src/components/tables/table_simple_v2.vue';
 import PPBtn from '../buttons/PPBtn.vue';
 import PPDialog from './PPDialog.vue';
@@ -50,7 +49,6 @@ export default defineComponent({
     dark: Boolean,
   },
   components: {
-    Table,
     Table_v2,
     PPBtn,
     PPDialog,

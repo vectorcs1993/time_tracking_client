@@ -4,7 +4,7 @@
     :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`" v-model="model" :options="props.options"
     @update:model-value="props.update">
     <template v-slot:selected-item="scope">
-      <div :class="props.inputClass">
+      <div :class="props.inputClass" input-style="text-align: center;">
         {{ scope.opt.name }}
       </div>
     </template>

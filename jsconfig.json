@@ -1,3 +1,52 @@
 {
-  "extends": "./.quasar/tsconfig.json"
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "src/*": [
+        "./src/*"
+      ],
+      "app/*": [
+        "./*"
+      ],
+      "components/*": [
+        "./src/components/*"
+      ],
+      "layouts/*": [
+        "./src/layouts/*"
+      ],
+      "pages/*": [
+        "./src/pages/*"
+      ],
+      "assets/*": [
+        "./src/assets/*"
+      ],
+      "boot/*": [
+        "./src/boot/*"
+      ],
+      "stores/*": [
+        "./src/stores/*"
+      ]
+    },
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": [
+    "src/**/*",
+    "src/*.js",
+    "src/*.ts",
+    "src/*.vue",
+    "src/*.json"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".quasar",
+    "src-cordova",
+    "src-capacitor"
+  ]
 }

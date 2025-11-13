@@ -64,14 +64,12 @@
 </template>
 <script>
 import {
-  defineComponent, ref, inject,
+  defineComponent, ref,
 } from 'vue';
-import Table from 'src/components/tables/table_universal.vue';
 
 export default defineComponent({
   name: 'DialogAddFromObject',
   components: {
-    Table,
   },
   setup() {
     const dialog = ref(false);
@@ -85,9 +83,6 @@ export default defineComponent({
     const refAddMaterials = ref(null);
     const refAddMaterialsBuffer = ref(null);
     const type = ref('multuply');
-    const {
-      host,
-    } = inject('store');
     function openEdit() {
       objects.value.length = 0;
     }

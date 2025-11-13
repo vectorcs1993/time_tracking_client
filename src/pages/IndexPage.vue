@@ -8,4 +8,6 @@
 const props = defineProps({
   dark: Boolean,
 });
+document.title = 'Cnh';
+
 </script>

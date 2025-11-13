@@ -1,7 +1,7 @@
 import { defineRouter } from '#q-app/wrappers'
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from './routes.js'
-import store from '../store/index.js';
+import { useAuthStore } from 'src/stores/auth.js';
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -25,33 +25,36 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE)
   })
-  Router.beforeEach((to, from, next) => {
-    if (to.matched.some((record) => record.meta.requiresAuth)) {
-      store.storeVue.dispatch('isAuth').then((resp) => {
-        if (to.meta) {
-          if (to.meta.allowedRoles) {
-            if (to.meta.allowedRoles.includes(resp.user.role)) {
-              next();
-            } else {
-              next({ path: '/error_allow' });
-            }
-          } else {
-            next();
+
+  Router.beforeEach(async (to, from, next) => {
+    const authStore = useAuthStore()
+
+    if (to.meta.requiresAuth) {
+      if (authStore.isAuthenticated) {
+        // Если пользователь авторизован, но данных нет - запрашиваем
+        if (!authStore.user) {
+          try {
+            await authStore.fetchUser();
+          } catch (err) {
+            console.log('Router guard - fetchUser failed:', err);
+            // Используем forceLogout вместо прямого вызова API
+            authStore.forceLogout()
+            next('/login');
+            return;
           }
-        } else {
-          next();
         }
-      }).catch(() => {
-        store.storeVue.dispatch('logout').then(() => {
-          next({ path: '/login', query: { redirect: to.path } });
-          if (store.storeVue.state.upd) {
-            store.storeVue.state.upd();
-          }
-        });
-      });
+        next();
+      } else {
+        next('/login');
+      }
     } else {
+      // Если пользователь уже авторизован и идет на страницу логина - редирект на главную
+      if (to.path === '/login' && authStore.isAuthenticated) {
+        next('/');
+        return;
+      }
       next();
     }
-  });
+  })
   return Router
 })

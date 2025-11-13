@@ -67,37 +67,21 @@
 import {
   onMounted,
   ref,
-  inject,
   defineProps,
 } from 'vue';
 import PPBtn from 'src/components/buttons/PPBtn.vue';
 import moment from 'moment/moment';
-import PPTab from 'src/components/tabs/PPTab.vue';
+import PPTab from 'src/components/PPTab.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
-
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
-import axios from 'axios';
-// import {
-//   TYPE_REPORT_BRANCH,
-//   TYPE_REPORT_GLOBAL,
-//   TYPE_REPORT_INDIVIDUAL,
-//   TYPE_REPORT_PROJECT_DETAIL_BRANCH,
-//   TYPE_REPORT_PROJECT_DETAIL_INDIVIDUAL,
-// } from './type_reports';
 
 const props = defineProps({
   showInfo: Function,
   contentHeight: Number,
   dark: Boolean,
+  authStore: Object,
 });
 
-const {
-  host,
-  currentUser,
-  getQuery,
-  // postQuery,
-  // getNameShort,
-} = inject('store');
 const columns = ref([]);
 const rows = ref([]);
 const total = ref({});
@@ -119,7 +103,7 @@ const inputFilter = ref({
 });
 function isAllowView(val) {
   try {
-    return val.allow_view.find((b) => b === currentUser().branch);
+    return val.allow_view.find((b) => b === 7); // currentUser().branch
   } catch {
     return false;
   }
@@ -128,7 +112,7 @@ function update(callback) {
   load.value = true;
   // извлечение конфигурации таблицы
   configs.value.length = 0;
-  getQuery(`${host()}/services/genprice/TimeTrackingReport`).then((respC) => {
+  props.authStore.authorizedRequest('get', `all_reports`).then((respC) => {
     respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
       conf.allow_view = JSON.parse(conf.allow_view);
       conf.filter_branches = JSON.parse(conf.filter_branches);
@@ -157,7 +141,7 @@ function createReportV2() {
   rows.value.length = 0;
   total.value = undefined;
   load.value = true;
-  getQuery(`${host()}/services/time_tracking_report_v2?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}`).then((resp) => {
+  props.authStore.authorizedRequest('get', `report?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}`).then((resp) => {
     console.log(resp);
     columns.value = resp.data.columns;
     total.value = resp.data.total;
@@ -168,28 +152,28 @@ function createReportV2() {
     props.showInfo(err);
   });
 }
-function exportReport() {
-  const data = { columns: columns.value, rows: rows.value };
-  axios({
-    url: `${host()}/services/time_tracking_report_excel`,
-    method: 'POST',
-    responseType: 'blob',
-    data,
-  }).then((response) => {
-    const fileURL = window.URL.createObjectURL(
-      new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-    );
-    const fileLink = document.createElement('a');
-    fileLink.href = fileURL;
-    fileLink.setAttribute('download', `Отчёт_${curentConfig.value.name}.xlsx`);
-    document.body.appendChild(fileLink);
-    fileLink.click();
-  }).catch((err) => {
-    console.log(err);
+// function exportReport() {
+//   const data = { columns: columns.value, rows: rows.value };
+//   axios({
+//     url: `${host()}/services/time_tracking_report_excel`,
+//     method: 'POST',
+//     responseType: 'blob',
+//     data,
+//   }).then((response) => {
+//     const fileURL = window.URL.createObjectURL(
+//       new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+//     );
+//     const fileLink = document.createElement('a');
+//     fileLink.href = fileURL;
+//     fileLink.setAttribute('download', `Отчёт_${curentConfig.value.name}.xlsx`);
+//     document.body.appendChild(fileLink);
+//     fileLink.click();
+//   }).catch((err) => {
+//     console.log(err);
 
-    props.showInfo(err);
-  });
-}
+//     props.showInfo(err);
+//   });
+// }
 function updateInputFilter() {
   localStorage.setItem('report_time_traking', Number(tabConf.value.substr(4)));
   localStorage.setItem('report_filter_date_start', inputFilter.value.dateStart);
@@ -209,10 +193,10 @@ onMounted(() => {
     inputFilter.value.dateFinish = localStorage.getItem('report_filter_date_finish');
   }
   branches.value.length = 0;
-  getQuery(`${host()}/services/genprice/Branch`).then((respB) => {
+  props.authStore.authorizedRequest('get', `branches`).then((respB) => {
     branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
     users.value.length = 0;
-    getQuery(`${host()}/services/users`).then((respU) => {
+    props.authStore.authorizedRequest('get', `users`).then((respU) => {
       users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
       update();
     });

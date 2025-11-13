@@ -15,7 +15,7 @@
     ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
     :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
     separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" style="height: 75vh;">
+    v-model:selected="selected" @row-click="selectRow" :style="`height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
         <PPBtnAdd label="Новый" :click="() => {
@@ -59,7 +59,7 @@
     <q-card class="q-pt-none" style="width: 400px; max-width: 95vw;"
       :class="`${props.dark ? 'pp-dark' : 'pp-light'} q-pt-none`" :dark="props.dark">
       <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div class="text-h6">Новый целевой объект</div>
+        <div>Новый источник поступления задачи</div>
         <q-space />
         <q-btn dense flat icon="close" v-close-popup>
           <q-tooltip class="bg-grey text-white">Закрыть</q-tooltip>
@@ -77,10 +77,10 @@
     <q-card :class="`${props.dark ? 'pp-dark' : 'pp-light'} q-pt-none`" :dark="props.dark" class="q-pt-none"
       style="width: 400px; max-width: 95vw;">
       <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div class="text-h6">Изменение данных целевого объекта</div>
+        <div>Изменение источника поступления задачи</div>
         <q-space />
         <q-btn dense flat icon="close" v-close-popup>
-          <q-tooltip>Закрыть</q-tooltip>
+          <q-tooltip class="bg-grey text-white">Закрыть</q-tooltip>
         </q-btn>
       </q-bar>
       <q-card-section>
@@ -93,28 +93,24 @@
   </q-dialog>
 </template>
 <script setup>
+import {
+  ref,
+  defineProps,
+  onActivated,
+} from 'vue';
 import PPBtn from 'src/components/buttons/PPBtn.vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
-import {
-  onMounted,
-  ref,
-  inject,
-  defineProps,
-} from 'vue';
 
 const props = defineProps({
   showError: Function,
   showConfirm: Function,
   showInfo: Function,
   dark: Boolean,
+  authStore: Object,
+  contentHeight: Number,
 });
 
-const {
-  host,
-  getQuery,
-  postQuery,
-} = inject('store');
 
 const rows = ref([]);
 const filter = ref('');
@@ -131,7 +127,7 @@ const pagination = ref({
 
 function update() {
   rows.value.length = 0;
-  getQuery(`${host()}/services/genprice/TimeTrackingActivity`).then((resp) => {
+  props.authStore.authorizedRequest('get', `all_sources`).then((resp) => {
     rows.value.push(...resp.data);
   }).catch((err) => {
     console.log(err);
@@ -143,36 +139,36 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingActivity/create`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingSource/create`, query)
     .then((res) => {
       dialogAdd.value = false;
       if (res.data.result === 'ok') {
         update();
       } else if (res.data.data === 'name must be unique') {
-        props.showError(`Целевой объект "${query.name}" уже существует в базе данных`);
+        props.showError(`Источник поступления задач "${query.name}" уже существует в базе данных`);
       }
     });
 }
 function change() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingActivity/update/${selected.value[0].id}`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingSource/update/${selected.value[0].id}`, query)
     .then((res) => {
       dialogUpdate.value = false;
       if (res.data.result === 'ok') {
         update();
       } else if (res.data.data === 'name must be unique') {
-        props.showError(`Целевой объект "${query.name}" уже существует в базе данных`);
+        props.showError(`Источник поступления задач "${query.name}" уже существует в базе данных`);
       }
     });
 }
 function remove() {
-  props.showConfirm(`Удалить целевой объект ${selected.value[0].name}?`, () => {
-    getQuery(`${host()}/services/genprice/TimeTrackingActivity/delete/${selected.value[0].id}`).then(() => {
+  props.showConfirm(`Удалить источник поступления задач ${selected.value[0].name}?`, () => {
+    props.authStore.authorizedRequest('get', `/services/genprice/TimeTrackingSource/delete/${selected.value[0].id}`).then(() => {
       update();
     });
   });
 }
-onMounted(() => {
+onActivated(() => {
   update();
 });
 </script>

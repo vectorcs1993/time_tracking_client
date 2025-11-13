@@ -3,7 +3,7 @@
 
 import { defineConfig } from '#q-app/wrappers'
 
-export default defineConfig((ctx) => {
+export default defineConfig((ctx) => { // can be async too
   return {
     eslint: {
       // fix: true,
@@ -23,7 +23,8 @@ export default defineConfig((ctx) => {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
     boot: [
-      'axios'
+      'axios',
+      'pinia',
     ],
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#css
@@ -47,10 +48,14 @@ export default defineConfig((ctx) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#build
     build: {
-      // publicPath: '/',
+      publicPath: '/',
       vueRouterMode: 'history', // available values: 'hash', 'history'
       env: {
-        API_DEV: 'http://nsk-deb-srv.nevatom.ru',
+        API_PROD: 'https://nsk-deb-pp.nevatom.ru/time-tracking',
+        API_DEV: 'https://nsk-deb-pp.nevatom.ru/time-tracking-dev',
+        CLI_DEV_PORT: 87,
+        LOCAL_STORAGE_NAME_TOKEN: 'time_tracking_token',
+        LOCAL_STORAGE_NAME_TOKEN_REFRESH: 'time_tracking_token_refresh',
       },
       // webpackTranspile: false,
 
@@ -60,10 +65,11 @@ export default defineConfig((ctx) => {
       // webpackTranspileDependencies: [],
 
       esbuildTarget: {
-        browser: [ 'es2022', 'firefox115', 'chrome115', 'safari14' ],
-        node: 'node20'
+        browser: ['es2022', 'firefox115', 'chrome115', 'safari14'],
+        node: 'node18'
       },
-
+      devtool: ctx.dev ? 'cheap-module-source-map' : false,
+      verbose: ctx.dev,
       // rtl: true, // https://quasar.dev/options/rtl-support
       // showProgress: false,
       // gzip: true,
@@ -82,7 +88,7 @@ export default defineConfig((ctx) => {
       server: {
         type: 'http'
       },
-      open: true // opens browser window automatically
+      open: true, // opens browser window automatically
     },
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#framework
@@ -124,7 +130,7 @@ export default defineConfig((ctx) => {
     // https://v2.quasar.dev/quasar-cli-webpack/developing-ssr/configuring-ssr
     ssr: {
       prodPort: 3000, // The default port that the production server should use
-                      // (gets superseded if process.env.PORT is specified at runtime)
+      // (gets superseded if process.env.PORT is specified at runtime)
 
       middlewares: [
         'render' // keep this as last one
@@ -176,7 +182,7 @@ export default defineConfig((ctx) => {
       // extendPackageJson (json) {},
 
       // Electron preload scripts (if any) from /src-electron, WITHOUT file extension
-      preloadScripts: [ 'electron-preload' ],
+      preloadScripts: ['electron-preload'],
 
       // specify the debugging port to use for the Electron app when running in development mode
       inspectPort: 5858,
@@ -199,7 +205,7 @@ export default defineConfig((ctx) => {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: 'pp-users-client'
+        appId: 'time_traking'
       }
     },
 

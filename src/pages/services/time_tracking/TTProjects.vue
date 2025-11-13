@@ -15,7 +15,7 @@
     ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
     :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
     separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" style="height: 75vh;">
+    v-model:selected="selected" @row-click="selectRow" :style="`height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
         <PPBtnAdd label="Новый" :click="() => {
@@ -96,10 +96,9 @@
 </template>
 <script setup>
 import {
-  onMounted,
   ref,
-  inject,
   defineProps,
+  onActivated,
 } from 'vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPBtnDelete from 'src/components/buttons/PPBtnDelete.vue';
@@ -111,14 +110,10 @@ const props = defineProps({
   showError: Function,
   showConfirm: Function,
   showInfo: Function,
+  contentHeight: Number,
   dark: Boolean,
+  authStore: Object,
 });
-
-const {
-  host,
-  getQuery,
-  postQuery,
-} = inject('store');
 
 const rows = ref([]);
 const filter = ref('');
@@ -135,7 +130,7 @@ const pagination = ref({
 
 function update() {
   rows.value.length = 0;
-  getQuery(`${host()}/services/genprice/TimeTrackingProject`).then((resp) => {
+  props.authStore.authorizedRequest(`get`, 'all_projects').then((resp) => {
     rows.value.push(...resp.data);
   }).catch((err) => {
     console.log(err);
@@ -147,7 +142,7 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingProject/create`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingProject/create`, query)
     .then((res) => {
       dialogAdd.value = false;
       if (res.data.result === 'ok') {
@@ -159,7 +154,7 @@ function add() {
 }
 function change() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingProject/update/${selected.value[0].id}`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingProject/update/${selected.value[0].id}`, query)
     .then((res) => {
       dialogUpdate.value = false;
       if (res.data.result === 'ok') {
@@ -171,12 +166,12 @@ function change() {
 }
 function remove() {
   props.showConfirm(`Удалить проект ${selected.value[0].name}?`, () => {
-    getQuery(`${host()}/services/genprice/TimeTrackingProject/delete/${selected.value[0].id}`).then(() => {
+    props.authStore.authorizedRequest(`/services/genprice/TimeTrackingProject/delete/${selected.value[0].id}`).then(() => {
       update();
     });
   });
 }
-onMounted(() => {
+onActivated(() => {
   update();
 });
 </script>

@@ -9,21 +9,21 @@
         Ошибка доступа
       </div>
 
-      <q-btn square class="q-mt-xl" color="secondary" text-color="white" unelevated @click="logout" label="Вернуться ко входу"
-        no-caps />
+      <q-btn square class="q-mt-xl" color="secondary" text-color="white" unelevated @click="logout"
+        label="Вернуться ко входу" no-caps />
     </div>
   </div>
 </template>
 
 <script setup>
-import store from 'src/store/index';
-import { useRouter } from 'vue-router';
+// import store from 'src/store/index';
+// import { useRouter } from 'vue-router';
 
-const router = useRouter();
+// const router = useRouter();
 function logout() {
-  store.storeVue.dispatch('logout').then(() => {
-    router.replace('/login').then(() => window.location.reload());
-  });
+  // store.storeVue.dispatch('logout').then(() => {
+  //   router.replace('/login').then(() => window.location.reload());
+  // });
 }
 
 </script>

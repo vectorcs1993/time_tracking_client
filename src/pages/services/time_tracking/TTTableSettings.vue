@@ -3,7 +3,7 @@
     :dark="props.dark" dense flat wrap-cells :rows="rows" :columns="columns" row-key="id" virtual-scroll
     :hide-selected-banner="true" selection="none" binary-state-sort :hide-pagination="false"
     v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header no-data-label="Нет данных"
-    :filter="filter" v-model:selected="selected" @row-click="selectRow" style="height: 75vh;">
+    :filter="filter" v-model:selected="selected" @row-click="selectRow" :style="`height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
         <PPBtnAdd :dark="props.dark" :click="() => {
@@ -179,7 +179,7 @@
           <span v-if="!(props.col.funcDisable ? props.col.funcDisable(props.row, props.col) : false)">
             <span v-if="props.col.type === 'selector_multiple'" class="row fit items-center">
               <div v-for="data in props.row[props.col.name]" :key="data">
-                <q-chip text-color="secondary"
+                <q-chip text-color="secondary" dense
                   :class="`${props.dark ? 'bg-orange-9 text-white' : 'bg-green text-white'} q-ma-xs text-size`">
                   {{ data.name }}
                 </q-chip>
@@ -237,7 +237,6 @@
 import {
   onMounted,
   ref,
-  inject,
   defineProps,
 } from 'vue';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
@@ -250,22 +249,16 @@ import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import PPCheckbox from 'src/components/PPCheckbox.vue';
 import PPSimpleSelect from 'src/components/selects/PPSimpleSelect.vue';
 import PPMultipleSelect from 'src/components/selects/PPMultipleSelect.vue';
+import { getNewId, OPTION_ALL, STRING_NO_SELECT } from './fun';
 
 const props = defineProps({
   showError: Function,
   showConfirm: Function,
   showInfo: Function,
   dark: Boolean,
+  authStore: Object,
+  contentHeight: Number,
 });
-
-const {
-  host,
-  getQuery,
-  postQuery,
-  getNewId,
-  OPTION_ALL,
-  STRING_NO_SELECT,
-} = inject('store');
 
 const rows = ref([]);
 const filter = ref('');
@@ -409,8 +402,7 @@ const columns = ref(colsGlobal);
 
 function update() {
   console.log('respFl');
-  getQuery(`${host()}/services/time_tracking_fields`).then((respFl) => {
-    console.log(respFl);
+  props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
     fields.value.push(...respFl.data.map((s) => {
       const e = s;
       e.tag = s.name;
@@ -423,20 +415,20 @@ function update() {
     type_works_mod.value.push(...type_works);
     branches.value.length = 0;
     branches_mod.value.length = 0;
-    getQuery(`${host()}/services/genprice/Branch`).then((respB) => {
+    props.authStore.authorizedRequest('get', `branches`).then((respB) => {
       branches_mod.value.push(OPTION_ALL);
       branches_mod.value.push(...respB.data);
       branches.value.push(...respB.data);
       projects_mod.value.length = 0;
-      getQuery(`${host()}/services/genprice/TimeTrackingProject`).then((respP) => {
+      props.authStore.authorizedRequest('get', `all_projects`).then((respP) => {
         projects_mod.value.push(OPTION_ALL);
         projects_mod.value.push(...respP.data);
         type_activities_mod.value.length = 0;
-        getQuery(`${host()}/services/genprice/TimeTrackingActivity`).then((respA) => {
+        props.authStore.authorizedRequest('get', `all_activities`).then((respA) => {
           type_activities_mod.value.push(OPTION_ALL);
           type_activities_mod.value.push(...respA.data);
           rows.value.length = 0;
-          getQuery(`${host()}/services/genprice/TimeTrackingConfig`).then((resp) => {
+          props.authStore.authorizedRequest('get', `all_configs`).then((resp) => {
             resp.data.forEach((element) => {
               // доступ к просмотру
               element.allow_views = JSON.parse(element.allow_views);
@@ -491,7 +483,7 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingConfig/create`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingConfig/create`, query)
     .then((res) => {
       dialogAdd.value = false;
       if (res.data.result === 'ok') {
@@ -503,7 +495,7 @@ function add() {
 }
 function change() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingConfig/update/${selected.value[0].id}`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingConfig/update/${selected.value[0].id}`, query)
     .then((res) => {
       dialogUpdate.value = false;
       if (res.data.result === 'ok') {
@@ -514,19 +506,23 @@ function change() {
     });
 }
 function isDisable(col, row) {
-  let res = false;
-  if (col === 'filter_type_work' || col === 'filter_branch' || col === 'filter_type_activity') {
-    res = row.filters;
-    if (col === 'filter_type_activity') {
-      res = row.filter_type_work.id === -1;
+  try {
+    let res = false;
+    if (col === 'filter_type_work' || col === 'filter_branch' || col === 'filter_type_activity') {
+      res = row.filters === true;
+      if (col === 'filter_type_activity') {
+        res = row.filter_type_work.id === -1;
+      }
     }
+    return res;
+  } catch {
+    return true;
   }
-  return res;
 }
 
 function remove() {
   props.showConfirm(`Удалить конфигурацию таблицы ${selected.value[0].name}?`, () => {
-    getQuery(`${host()}/services/genprice/TimeTrackingConfig/delete/${selected.value[0].id}`).then(() => {
+    props.authStore.authorizedRequest(`/services/genprice/TimeTrackingConfig/delete/${selected.value[0].id}`).then(() => {
       update();
     });
   });
@@ -534,7 +530,7 @@ function remove() {
 function save(col, value) {
   const updateRow = {};
   updateRow[col] = value;
-  postQuery(`${host()}/services/genprice/TimeTrackingConfig/update/${selected.value[0].id}`, updateRow).then((res) => {
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingConfig/update/${selected.value[0].id}`, updateRow).then((res) => {
     console.log(res);
   });
 }
@@ -626,7 +622,6 @@ function pasteColTable(tableRows) {
   bufferTable.value.length = 0;
 }
 onMounted(() => {
-  console.log('respFl');
   update();
 });
 </script>
