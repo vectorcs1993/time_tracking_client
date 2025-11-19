@@ -258,7 +258,7 @@ function login(data) {
   load(true);
   authStore.login(data).then(() => {
     leftDrawerOpen.value = true;
-    router.push('/home');
+    authStore.fetchUser().then(() => router.push('/home'));
   }).catch(() => {
     showError('Ошибка авторизации');
   }).finally(() => load(false));

@@ -48,7 +48,7 @@ export default defineConfig((ctx) => { // can be async too
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#build
     build: {
-      publicPath: '/planerman/',
+      publicPath: '/planerman-cli/',
       vueRouterMode: 'history', // available values: 'hash', 'history'
       env: {
         API_PROD: 'https://nsk-deb-pp.nevatom.ru/planerman',
