@@ -51,8 +51,8 @@ export default defineConfig((ctx) => { // can be async too
       publicPath: '/planerman/',
       vueRouterMode: 'history', // available values: 'hash', 'history'
       env: {
-        API_PROD: 'https://nsk-deb-pp.nevatom.ru/time-tracking',
-        API_DEV: 'https://nsk-deb-pp.nevatom.ru/time-tracking-dev',
+        API_PROD: 'https://nsk-deb-pp.nevatom.ru/planerman',
+        API_DEV: 'https://nsk-deb-pp.nevatom.ru/planerman-dev',
         CLI_DEV_PORT: 87,
         LOCAL_STORAGE_NAME_TOKEN: 'time_tracking_token',
         LOCAL_STORAGE_NAME_TOKEN_REFRESH: 'time_tracking_token_refresh',
