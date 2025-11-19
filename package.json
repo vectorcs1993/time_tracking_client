@@ -1,7 +1,7 @@
 {
   "name": "planerman_client",
-  "version": "0.2.5",
-  "description": "Time Tracking Client Project",
+  "version": "0.2.7",
+  "description": "Planerman Client Project",
   "productName": "planerman_client",
   "author": "vectorcs1993 <vectorcs@mail.ru>",
   "private": true,

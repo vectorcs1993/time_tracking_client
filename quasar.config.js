@@ -53,7 +53,6 @@ export default defineConfig((ctx) => { // can be async too
       env: {
         API_PROD: 'https://nsk-deb-pp.nevatom.ru/planerman',
         API_DEV: 'https://nsk-deb-pp.nevatom.ru/planerman-dev',
-        CLI_DEV_PORT: 87,
         LOCAL_STORAGE_NAME_TOKEN: 'planerman_token',
         LOCAL_STORAGE_NAME_TOKEN_REFRESH: 'planerman_token_refresh',
       },
