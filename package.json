@@ -1,14 +1,14 @@
 {
-  "name": "time_tracking_client",
+  "name": "planerman_client",
   "version": "0.2.1",
   "description": "Time Tracking Client Project",
-  "productName": "time_tracking_client",
+  "productName": "planerman_client",
   "author": "vectorcs1993 <vectorcs@mail.ru>",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "npx quasar dev",
-    "build": "npx quasar build"
+    "build": "quasar build -m spa && docker build -t planerman_client ."
   },
   "dependencies": {
     "@quasar/extras": "^1.17.0",
