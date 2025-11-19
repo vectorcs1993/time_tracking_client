@@ -80,7 +80,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ВРЕМЕННЫЙ МЕТОД ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
     async authorizedRequest(method, url, data = null) {
 
       const requestConfig = {
@@ -88,10 +87,11 @@ export const useAuthStore = defineStore('auth', {
         url,
       };
 
+
       if (data && (method.toLowerCase() === 'post' || method.toLowerCase() === 'put' || method.toLowerCase() === 'patch')) {
         requestConfig.data = data;
       }
-
+      console.log(requestConfig);
       try {
         const response = await api(requestConfig);
         return response;
@@ -101,12 +101,10 @@ export const useAuthStore = defineStore('auth', {
           try {
             await this.refreshToken();
             return await api(requestConfig);
-          } catch (refreshError) {
-            this.logout();
-            throw refreshError;
+          } catch {
+            window.location.reload();
           }
-        }
-        throw error;
+        } else throw error;
       }
     },
 
@@ -122,8 +120,12 @@ export const useAuthStore = defineStore('auth', {
 
       try {
 
-        const response = await api.get('/me');
-        this.user = response.data;
+        const responseMe = await api.get('/me');
+        this.user = responseMe.data;
+
+        const responseBranch = await api.get(`/branches/${this.user.branch}`);
+        this.branch = responseBranch.data;
+
         return this.user;
       } catch (err) {
 
@@ -131,6 +133,9 @@ export const useAuthStore = defineStore('auth', {
           await this.refreshToken();
           const response = await api.get('/me');
           this.user = response.data;
+
+          const responseBranch = await api.get(`/branches/${this.user.branch}`);
+          this.branch = responseBranch.data;
           return this.user;
         }
         throw err;

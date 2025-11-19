@@ -1,6 +1,6 @@
 <template>
-  <q-tooltip :anchor="props.anchor" self="center left" :class="`${props.dark ? 'pp-dark' : 'pp-light'}`"
-    style="border-radius: 0 !important; border: 1px solid;" :transition-duration="0">
+  <q-tooltip :anchor="props.anchor" self="center left" class="pp-tooltip text-size" :class="{ 'dark': props.dark }"
+    :transition-duration="0">
     <slot name="default" />
   </q-tooltip>
 </template>

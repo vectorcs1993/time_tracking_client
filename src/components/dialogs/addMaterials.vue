@@ -40,7 +40,7 @@ import {
   defineComponent, ref,
 } from 'vue';
 import Table_v2 from 'src/components/tables/table_simple_v2.vue';
-import PPBtn from '../buttons/PPBtn.vue';
+import PPBtn from '../TTBtn.vue';
 import PPDialog from './PPDialog.vue';
 
 export default defineComponent({

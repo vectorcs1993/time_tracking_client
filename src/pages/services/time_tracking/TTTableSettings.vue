@@ -79,7 +79,7 @@
                 props.row.colTableSelected.length = 0;
                 addColumnForColTable(props.row.cols);
               }" :dark="props.dark" />
-              <PPBtn v-if="props.row.colTableSelected.length > 0" label="Удалить" icon="delete" :click="() => {
+              <PPBtn v-if="props.row.colTableSelected.length > 0" icon="delete" :click="() => {
                 deleteColumnForColTable(props.row.cols, props.row.colTableSelected);
               }" :dark="props.dark" />
               <PPBtn v-if="props.row.colTableSelected.length === 1" label="Вверх" icon="arrow_upward" :click="() => {
@@ -241,7 +241,7 @@ import {
 } from 'vue';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPDialog from 'src/components/dialogs/PPDialog.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
@@ -251,6 +251,7 @@ import PPSimpleSelect from 'src/components/selects/PPSimpleSelect.vue';
 import PPMultipleSelect from 'src/components/selects/PPMultipleSelect.vue';
 import { getNewId, OPTION_ALL, STRING_NO_SELECT } from './fun';
 
+document.title = 'Настройки таблиц';
 const props = defineProps({
   showError: Function,
   showConfirm: Function,

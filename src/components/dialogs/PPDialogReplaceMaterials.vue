@@ -35,7 +35,7 @@ import {
   inject,
 } from 'vue';
 import PPDialog from './PPDialog.vue';
-import PPBtn from '../buttons/PPBtn.vue';
+import PPBtn from '../TTBtn.vue';
 import PPFilterSelect from '../selects/PPFilterSelect.vue';
 
 const props = defineProps({

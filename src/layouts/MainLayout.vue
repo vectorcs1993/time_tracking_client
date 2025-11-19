@@ -2,15 +2,16 @@
   <q-layout view="hHh Lpr lff" :class="`${dark ? 'pp-dark' : 'pp-light'}`">
     <q-header :dark="dark" :class="`${dark ? 'bg-header-dark' : 'bg-header-light'}`">
       <q-toolbar id="header">
-        <q-btn flat v-if="menuList.length > 0" dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-btn flat v-if="leftDrawerOpen" dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
         <q-card-section class="q-pa-sm row items-center full-width">
-          <img class="q-mt-xs" src="./images/logo.svg">
-          <img class="q-mt-xs" src="./images/logo_standby_mono.svg"
-            style="padding: 0px; width: 40px; height: 30px; position: absolute; left: 160px; top: 12px; z-index: 99;">
-          <img class="q-mt-xs" src="./images/tt.svg"
-            style="padding: 0px; height: 30px; position: absolute; left: 205px; top: 13px; z-index: 99;">
+          <!-- <img class="q-mt-xs" src="./images/logo.svg"> -->
+          <!-- <img class="q-mt-xs" src="./images/logo_standby_mono.svg"
+            style="padding: 0px; width: 40px; height: 30px; position: absolute; left: 160px; top: 12px; z-index: 99;"> -->
+          <!-- <img class="q-mt-xs" src="./images/tt.svg"> -->
+          <div class="text-h6" style="display: block; cursor: pointer;" @click="() => router.push('/')">{{ `Планерман
+            ${getTitlePage()}` }}</div>
           <q-space />
-          <div v-if="authStore.getUser">
+          <div v-if="authStore.getUser && authStore.getBranch">
             <PPBtn :label="authStore.getUser.name" icon="person" :dark="dark">
               <q-popup-proxy square :class="`${dark ? 'pp-dark' : 'pp-light'}`">
                 <div class="q-pa-md" style="width: 400px;">
@@ -32,7 +33,7 @@
                     <div>
                       Подразделение:
                     </div>
-                    <q-badge :color="dark ? 'grey-7' : 'green'">{{ authStore.getUser.branch }}</q-badge>
+                    <q-badge :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div class="col">
@@ -54,15 +55,38 @@
               </q-popup-proxy>
             </PPBtn>
           </div>
+          <div v-else>
+            <PPBtn :dark="dark" :click="() => router.push('/login')" :label="'Вход'"
+              style="padding-left: 10px; padding-right: 10px;" />
+          </div>
           <div class="col-2" align="right">
             v{{ version }}
           </div>
         </q-card-section>
       </q-toolbar>
     </q-header>
+    <q-drawer :dark="dark" v-model="leftDrawerOpen" :width="350" :mini-width="55" :breakpoint="500"
+      :class="`${dark ? 'bg-header-dark' : 'bg-header-light'}`" mini-to-overlay :mini="miniState">
+      <q-list dark>
+        <template v-for="(menuItem, index) in menuList" :key="index">
+          <q-item :to="menuItem.to" @click="() => { showMessage = true; miniState = true; }">
+            <q-item-section v-if="menuItem.icon" avatar>
+              <q-icon :name="menuItem.icon" />
+            </q-item-section>
+            <q-item-section v-else avatar>
+              {{ menuItem.TT }}
+            </q-item-section>
+            <q-item-section>
+              {{ menuItem.label }}
+            </q-item-section>
+            <TTTooltip v-if="miniState === true" :dark="dark"> {{ menuItem.label }}</TTTooltip>
+          </q-item>
+        </template>
+      </q-list>
+    </q-drawer>
     <q-page-container @click="() => { showMessage = true; miniState = true; }">
       <router-view :authStore="authStore" :showError="showError" :showInfo="showInfo" :showConfirm="showConfirm"
-        :calculateHeader="calculateHeader" :dark="dark" :debug="debug" :branch="branch" :load="load" :login="login"
+        :contentHeight="contentHeight" :dark="dark" :debug="debug" :branch="branch" :load="load" :login="login"
         :logout="logout" />
       <!-- Диалог ошибки -->
       <DialogError ref="de" :dark="dark" />
@@ -88,15 +112,17 @@
 import {
   ref,
   onMounted,
+  computed,
+  onBeforeUnmount,
+  watch,
 } from 'vue';
 import DialogError from 'src/components/dialogs/error.vue';
 import DialogConfirm from 'src/components/dialogs/confirm.vue';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
-import { useRouter } from 'vue-router';
+import PPBtn from 'src/components/TTBtn.vue';
+import TTTooltip from 'src/components/TTTooltip.vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth.js';
 import packageInfo from '../../package.json';
-
-
 
 const root = document.documentElement;
 
@@ -112,72 +138,54 @@ const dc = ref(null);
 const di = ref(null);
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
-// const routes = [
-//   {
-//     label: 'Главная',
-//     icon: 'home',
-//     to: '/home',
-//   },
-//   {
-//     icon: 'description',
-//     label: 'Учёт документов',
-//     to: '/services/documents',
-//   },
-//   {
-//     icon: 'account_tree',
-//     label: 'Проекты',
-//     to: '/services/projects',
-//   },
-//   {
-//     icon: 'fact_check',
-//     label: 'Номенклатура',
-//     to: '/services/references/nomenclatures',
-//   },
-//   {
-//     icon: 'settings',
-//     label: 'Настройки',
-//     to: '/services/settings',
-//   },
-//   {
-//     icon: 'splitscreen',
-//     label: 'Управление задачами',
-//     to: '/services/projects_tasks',
-//   },
-//   {
-//     icon: 'event_note',
-//     label: 'Учёт рабочего времени',
-//     to: '/services/time_tracking',
-//   },
-//   {
-//     TT: 'МА',
-//     label: 'Материалы',
-//     to: '/services/references/materials',
-//   },
-//   {
-//     TT: 'МК',
-//     label: 'Категории материалов',
-//     to: '/services/references/materials_categories',
-//   },
-//   {
-//     TT: 'МР',
-//     label: 'Роли материалов',
-//     to: '/services/references/materials_roles',
-//   },
-//   {
-//     TT: 'НК',
-//     label: 'Настройка корпусов',
-//     to: '/services/references/boxes',
-//   },
-//   {
-//     TT: 'AC',
-//     label: 'Настройка ассетов',
-//     to: '/services/references/assets',
-//   },
-// ];
-const menuList = ref([]);
-const leftDrawerOpen = ref(false);
+const routes = [
+  {
+    label: 'Главная',
+    icon: 'home',
+    to: '/home',
+  },
+  {
+    icon: 'view_list',
+    label: 'Таблицы',
+    to: '/tables',
+  },
+  {
+    icon: 'article',
+    label: 'Отчёты',
+    to: '/reports',
+  },
+  {
+    icon: 'co_present',
+    label: 'Проекты',
+    to: '/projects',
+  },
+  {
+    icon: 'flash_on',
+    label: 'Виды активности',
+    to: '/activities',
+  },
+  {
+    icon: 'announcement',
+    label: 'Источники поступления',
+    to: '/sources',
+  },
+  {
+    icon: 'handyman',
+    label: 'Настройка таблиц',
+    to: '/settings/tables',
+  },
+  {
+    icon: 'construction',
+    label: 'Настройка отчётов',
+    to: '/settings/reports',
+  },
+];
+
+const menuList = computed(() => authStore.isAuthenticated ? routes : []);
+const leftDrawerOpen = computed(() => authStore.isAuthenticated);
 const miniState = ref(true);
 const version = ref(packageInfo.version);
 
@@ -217,6 +225,22 @@ const calculateHeader = () => {
   const header = document.getElementById('header');
   return (header ? header.offsetHeight : 0) + 10;
 };
+const zoomLevel = ref(100);
+const contentHeight = ref(0);
+let resizeTimeout = null;
+
+watch(zoomLevel, (newVal) => {
+  console.log('Масштаб изменен:', newVal + '%')
+})
+
+const calculateRemainingHeight = () => {
+  if (resizeTimeout) clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    const headerHeight = calculateHeader();
+    const availableHeight = window.innerHeight - headerHeight - 10; // 10px для отступов
+    contentHeight.value = availableHeight;
+  }, 100);
+};
 function updateTextSize() {
   root.style.setProperty('--text-size', `${currentTextSize.value}px`);
   localStorage.setItem('text-size', currentTextSize.value);
@@ -233,17 +257,27 @@ function load(enable) {
 function login(data) {
   load(true);
   authStore.login(data).then(() => {
-    router.push('/');
+    leftDrawerOpen.value = true;
+    router.push('/home');
   }).catch(() => {
     showError('Ошибка авторизации');
   }).finally(() => load(false));
 }
 function logout() {
-  authStore.logout().finally(() => router.push('/login'));
+  authStore.logout().finally(() => {
+    leftDrawerOpen.value = false;
+    router.push('/login');
+  });
+}
+function getTitlePage() {
+  const a = routes.find((r) => r.to === route.path);
+  if (a) return `/ ${a.label}`;
+  return '';
 }
 onMounted(async () => {
   load(false);
-
+  window.addEventListener('resize', calculateRemainingHeight);
+  calculateRemainingHeight();
   // Инициализируем store перед проверкой аутентификации
   authStore.initializeStore();
 
@@ -252,5 +286,12 @@ onMounted(async () => {
     updateTextSize();
     updateTheme();
   }
-})
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', calculateRemainingHeight);
+  if (resizeTimeout) clearTimeout(resizeTimeout);
+  if (de.value) de.value.hide();
+  if (di.value) di.value.hide();
+  if (dc.value) dc.value.hide();
+});
 </script>

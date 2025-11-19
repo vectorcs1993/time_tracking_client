@@ -16,8 +16,7 @@ export function getNameShort(_name) {
       return _name;
     }
     return `${n[0]} ${n[1] ? `${n[1][0]}.` : ''}${n[1] ? `${n[2][0]}.` : ''}`;
-  } catch (err) {
-    console.log(err);
+  } catch {
     return _name;
   }
 }

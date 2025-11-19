@@ -10,8 +10,7 @@
           <PPInputSingle :dark="props.dark" :type="'email'" :placeholder="'Логин (адрес почты)'" v-model="email" />
           <PPInputSingle :dark="props.dark" :type="'password'" :placeholder="'Пароль'" v-model="password" />
           <div class="row justify-end" style="margin-top: 15px; margin-bottom: -15px; margin-right: 8px;">
-            <PPBtn label="Войти" v-model:loading="loadLogin" type="submit" :dark="props.dark"
-              style="padding-left: 10px; padding-right: 10px;" />
+            <PPBtn label="Войти" type="submit" :dark="props.dark" style="padding-left: 10px; padding-right: 10px;" />
           </div>
         </form>
       </q-card-section>
@@ -24,7 +23,7 @@
 <script setup>
 import { ref, defineProps } from 'vue';
 import { useAuthStore } from 'src/stores/auth.js';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 
 const authStore = useAuthStore();

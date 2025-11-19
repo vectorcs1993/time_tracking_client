@@ -4,7 +4,7 @@
     :hide-selected-banner="true" selection="none" binary-state-sort :hide-pagination="false"
     v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header no-data-label="Нет данных"
     :filter="filter" v-model:expanded="expanded" v-model:selected="selected" @row-click="selectRow"
-    style="height: 80vh;">
+    :style="`height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
         <PPBtnAdd :dark="props.dark" :click="() => {
@@ -77,7 +77,7 @@
                   addColumnForColTableProject(props.row.cols);
                 }
               }" :dark="props.dark" />
-              <PPBtn v-if="props.row.colTableSelected.length > 0" label="Удалить" icon="delete" :click="() => {
+              <PPBtn v-if="props.row.colTableSelected.length > 0" icon="delete" :click="() => {
                 deleteColumnForColTable(props.row.cols, props.row.colTableSelected);
               }" :dark="props.dark" />
               <PPBtn v-if="props.row.colTableSelected.length === 1" label="Вверх" icon="arrow_upward" :click="() => {
@@ -251,7 +251,7 @@
           <span v-if="!(props.col.funcDisable ? props.col.funcDisable(props.row, props.col) : false)">
             <span v-if="props.col.type === 'selector_multiple'" class="row fit items-center">
               <div v-for="data in props.row[props.col.name]" :key="data">
-                <q-chip text-color="secondary"
+                <q-chip dense text-color="secondary"
                   :class="`${props.dark ? 'bg-orange-9 text-white' : 'bg-green text-white'} q-ma-xs text-size`">
                   {{ data.name }}
                 </q-chip>
@@ -310,7 +310,6 @@
 import {
   onMounted,
   ref,
-  inject,
   defineProps,
 } from 'vue';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
@@ -319,7 +318,7 @@ import { type_work_progress } from 'src/pages/services/time_tracking/type_work_p
 // import { type_conditions } from 'src/pages/services/time_tracking/type_conditions.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 import PPDialog from 'src/components/dialogs/PPDialog.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
@@ -327,22 +326,18 @@ import PPCheckbox from 'src/components/PPCheckbox.vue';
 import PPSimpleSelect from 'src/components/selects/PPSimpleSelect.vue';
 import PPMultipleSelect from 'src/components/selects/PPMultipleSelect.vue';
 import { TYPE_REPORT_BRANCH, TYPE_REPORT_INDIVIDUAL, TYPE_REPORT_PROJECT_INDIVIDUAL } from './type_reports';
+import { getNewId, OPTION_ALL } from './fun';
 
+document.title = 'Настройки отчётов';
 const props = defineProps({
   showError: Function,
   showConfirm: Function,
   showInfo: Function,
   dark: Boolean,
+  contentHeight: Number,
+  authStore: Object,
 });
 
-const {
-  host,
-  getQuery,
-  postQuery,
-  getNewId,
-  STRING_NO_SELECT,
-  OPTION_ALL,
-} = inject('store');
 const rows = ref([]);
 const filter = ref('');
 const selected = ref([]);
@@ -436,17 +431,17 @@ function update() {
   type_works_mod.value.push(...type_works);
 
   users_mod.value.length = 0;
-  getQuery(`${host()}/services/users`).then((respU) => {
+  props.authStore.authorizedRequest('get', `users`).then((respU) => {
     users_mod.value.push({
       id: -1,
       name: 'Все',
     });
     users_mod.value.push(...respU.data);
     branches_mod.value.length = 0;
-    getQuery(`${host()}/services/genprice/Branch`).then((respB) => {
+    props.authStore.authorizedRequest('get', `branches`).then((respB) => {
       branches_mod.value.push(...respB.data);
       projects_mod.value.length = 0;
-      getQuery(`${host()}/services/genprice/TimeTrackingProject`).then((respP) => {
+      props.authStore.authorizedRequest('get', `all_projects`).then((respP) => {
         projects.value.push(...respP.data);
         projects_mod.value.push({
           id: -1,
@@ -454,17 +449,17 @@ function update() {
         });
         projects_mod.value.push(...respP.data);
         type_activities_mod.value.length = 0;
-        getQuery(`${host()}/services/genprice/TimeTrackingActivity`).then((respA) => {
+        props.authStore.authorizedRequest('get', `all_activities`).then((respA) => {
           type_activities_mod.value.push({
             id: -1,
             name: 'Все',
           });
           type_activities_mod.value.push(...respA.data);
           type_sources_mod.value.length = 0;
-          getQuery(`${host()}/services/genprice/TimeTrackingSource`).then((respS) => {
+          props.authStore.authorizedRequest('get', `sources`).then((respS) => {
             type_sources_mod.value.push(...respS.data);
             rows.value.length = 0;
-            getQuery(`${host()}/services/genprice/TimeTrackingReport`).then((resp) => {
+            props.authStore.authorizedRequest('get', `all_reports`).then((resp) => {
               resp.data.forEach((element) => {
                 try {
                   // тип отчёта
@@ -522,7 +517,7 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingReport/create`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingReport/create`, query)
     .then((res) => {
       dialogAdd.value = false;
       if (res.data.result === 'ok') {
@@ -534,7 +529,7 @@ function add() {
 }
 function change() {
   const query = { name: modelInput.value.name };
-  postQuery(`${host()}/services/genprice/TimeTrackingReport/update/${selected.value[0].id}`, query)
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingReport/update/${selected.value[0].id}`, query)
     .then((res) => {
       dialogUpdate.value = false;
       if (res.data.result === 'ok') {
@@ -547,7 +542,7 @@ function change() {
 
 function remove() {
   props.showConfirm(`Удалить конфигурацию отчёта ${selected.value[0].name}?`, () => {
-    getQuery(`${host()}/services/genprice/TimeTrackingReport/delete/${selected.value[0].id}`).then(() => {
+    props.authStore.authorizedRequest(`/services/genprice/TimeTrackingReport/delete/${selected.value[0].id}`).then(() => {
       update();
     });
   });
@@ -555,7 +550,7 @@ function remove() {
 function save(col, value) {
   const updateRow = {};
   updateRow[col] = value;
-  postQuery(`${host()}/services/genprice/TimeTrackingReport/update/${selected.value[0].id}`, updateRow);
+  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingReport/update/${selected.value[0].id}`, updateRow);
 }
 function handleKeydown(event, col, val) {
   if (event.key === 'Enter') {
@@ -665,15 +660,13 @@ function pasteColTable(tableRows) {
 }
 onMounted(() => {
   type_reports.length = 0;
-  getQuery(`${host()}/services/type_reports`)
-    .then((resTypeReports) => {
-      type_reports.push(...resTypeReports.data);
-      type_conditions.length = 0;
-      getQuery(`${host()}/services/types_conditions`)
-        .then((resTypeConditions) => {
-          type_conditions.push(...resTypeConditions.data);
-          update();
-        });
+  props.authStore.authorizedRequest('get', `all_type_reports`).then((resTypeReports) => {
+    type_reports.push(...resTypeReports.data);
+    type_conditions.length = 0;
+    props.authStore.authorizedRequest('get', `all_type_conditions`).then((resTypeConditions) => {
+      type_conditions.push(...resTypeConditions.data);
+      update();
     });
+  });
 });
 </script>

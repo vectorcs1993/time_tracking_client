@@ -7,33 +7,28 @@
         label: 'Наименование',
         align: 'left',
         field: (row) => row.name,
-        format: (val) => `${val}`,
         sortable: true,
         style: 'min-width: 500px',
         edit: false,
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
-    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
-    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" :style="`height: ${props.contentHeight}px;`">
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :virtual-scroll-item-size="48"
+    :virtual-scroll-sticky-size-start="32" binary-state-sort :color="`${props.dark ? 'orange' : 'green'}`"
+    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" wrap-cells
+    grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
+    :style="`min-height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <PPBtnAdd label="Новый" :click="() => {
+        <PPBtnAdd :click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
-        <PPBtn label="Редактировать" v-show="selected.length > 0" icon="edit" :click="() => {
+        <PPBtn v-show="selected.length > 0" icon="edit" :click="() => {
           dialogUpdate = true;
           modelInput.name = selected[0].name;
         }" :dark="props.dark" />
-        <PPBtn disable label="Удалить" icon="delete" v-show="selected.length > 0" :click="remove" :dark="props.dark" />
+        <PPBtn icon="delete" v-show="selected.length > 0" :click="remove" :dark="props.dark" />
         <q-space />
-        <q-input dark outlined dense debounce="300" v-model="filter" clearable placeholder="Поиск"
-          style="margin: 10px;">
-          <template v-slot:append>
-            <q-icon name="search" />
-          </template>
-        </q-input>
+        <PPSearchInput v-model="filter" debounce="300" :dark="props.dark" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
@@ -55,53 +50,36 @@
       </q-td>
     </template>
   </q-table>
-  <q-dialog v-model="dialogAdd" persistent>
-    <q-card class="q-pt-none" style="width: 400px; max-width: 95vw;"
-      :class="`${props.dark ? 'pp-dark' : 'pp-light'} q-pt-none`" :dark="props.dark">
-      <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div>Новый источник поступления задачи</div>
-        <q-space />
-        <q-btn dense flat icon="close" v-close-popup>
-          <q-tooltip class="bg-grey text-white">Закрыть</q-tooltip>
-        </q-btn>
-      </q-bar>
-      <q-card-section>
-        <form @submit.prevent="add">
-          <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-          <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Создать</PPBtn>
-        </form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="dialogUpdate" persistent>
-    <q-card :class="`${props.dark ? 'pp-dark' : 'pp-light'} q-pt-none`" :dark="props.dark" class="q-pt-none"
-      style="width: 400px; max-width: 95vw;">
-      <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div>Изменение источника поступления задачи</div>
-        <q-space />
-        <q-btn dense flat icon="close" v-close-popup>
-          <q-tooltip class="bg-grey text-white">Закрыть</q-tooltip>
-        </q-btn>
-      </q-bar>
-      <q-card-section>
-        <form @submit.prevent="change">
-          <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-          <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Изменить</PPBtn>
-        </form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+  <PPDialog v-model="dialogAdd" label="Новый источник поступления" :dark="props.dark">
+    <q-card-section>
+      <form @submit.prevent="add">
+        <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
+        <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Создать</PPBtn>
+      </form>
+    </q-card-section>
+  </PPDialog>
+  <PPDialog v-model="dialogUpdate" label="Изменение источника поступления" :dark="props.dark">
+    <q-card-section>
+      <form @submit.prevent="change">
+        <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
+        <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Изменить</PPBtn>
+      </form>
+    </q-card-section>
+  </PPDialog>
 </template>
 <script setup>
 import {
   ref,
   defineProps,
-  onActivated,
+  onMounted,
 } from 'vue';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPDialog from 'src/components/dialogs/PPDialog.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
+import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 
+document.title = 'Источники поступлений';
 const props = defineProps({
   showError: Function,
   showConfirm: Function,
@@ -126,11 +104,13 @@ const pagination = ref({
 });
 
 function update() {
+  selected.value.length = 0;
   rows.value.length = 0;
-  props.authStore.authorizedRequest('get', `all_sources`).then((resp) => {
+  props.authStore.authorizedRequest('get', `sources`).then((resp) => {
     rows.value.push(...resp.data);
   }).catch((err) => {
     console.log(err);
+    props.showError('Ошибка при загрузке данных');
   });
 }
 function selectRow(event, row) {
@@ -139,36 +119,26 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingSource/create`, query)
-    .then((res) => {
-      dialogAdd.value = false;
-      if (res.data.result === 'ok') {
-        update();
-      } else if (res.data.data === 'name must be unique') {
-        props.showError(`Источник поступления задач "${query.name}" уже существует в базе данных`);
-      }
-    });
+  props.authStore.authorizedRequest('post', `sources`, query).then(() => {
+    dialogAdd.value = false;
+    update();
+  }).catch(() => props.showError('Ошибка при создании данных'));
 }
 function change() {
   const query = { name: modelInput.value.name };
-  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingSource/update/${selected.value[0].id}`, query)
-    .then((res) => {
-      dialogUpdate.value = false;
-      if (res.data.result === 'ok') {
-        update();
-      } else if (res.data.data === 'name must be unique') {
-        props.showError(`Источник поступления задач "${query.name}" уже существует в базе данных`);
-      }
-    });
+  props.authStore.authorizedRequest('post', `sources/${selected.value[0].id}`, query).then(() => {
+    dialogUpdate.value = false;
+    update();
+  }).catch(() => props.showError('Ошибка при изменении данных'));
 }
 function remove() {
   props.showConfirm(`Удалить источник поступления задач ${selected.value[0].name}?`, () => {
-    props.authStore.authorizedRequest('get', `/services/genprice/TimeTrackingSource/delete/${selected.value[0].id}`).then(() => {
+    props.authStore.authorizedRequest('delete', `sources/${selected.value[0].id}`).then(() => {
       update();
-    });
+    }).catch(() => props.showError('Ошибка при удалении данных'));
   });
 }
-onActivated(() => {
+onMounted(() => {
   update();
 });
 </script>

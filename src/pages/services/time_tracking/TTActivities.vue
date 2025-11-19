@@ -7,26 +7,26 @@
         label: 'Наименование',
         align: 'left',
         field: (row) => row.name,
-        format: (val) => `${val}`,
         sortable: true,
         style: 'min-width: 500px',
         edit: false,
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
-    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
-    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" :style="`height: ${props.contentHeight}px;`">
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :virtual-scroll-item-size="48"
+    :virtual-scroll-sticky-size-start="32" binary-state-sort :color="`${props.dark ? 'orange' : 'green'}`"
+    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" wrap-cells
+    grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
+    :style="`min-height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <PPBtnAdd label="Новый" :click="() => {
+        <PPBtnAdd :click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
-        <PPBtn label="Редактировать" v-show="selected.length > 0" icon="edit" :click="() => {
+        <PPBtn v-show="selected.length > 0" icon="edit" :click="() => {
           dialogUpdate = true;
           modelInput.name = selected[0].name;
         }" :dark="props.dark" />
-        <PPBtn disable label="Удалить" icon="delete" v-show="selected.length > 0" :click="remove" :dark="props.dark" />
+        <PPBtn disable icon="delete" v-show="selected.length > 0" :click="remove" :dark="props.dark" />
         <q-space />
         <q-input dark outlined dense debounce="300" v-model="filter" clearable placeholder="Поиск"
           style="margin: 10px;">
@@ -93,15 +93,16 @@
   </q-dialog>
 </template>
 <script setup>
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import {
   ref,
   defineProps,
-  onActivated,
+  onMounted,
 } from 'vue';
 
+document.title = 'Виды активности';
 const props = defineProps({
   showError: Function,
   showConfirm: Function,
@@ -165,7 +166,7 @@ function remove() {
     });
   });
 }
-onActivated(() => {
+onMounted(() => {
   update();
 });
 </script>

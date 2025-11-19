@@ -18,7 +18,7 @@ import {
   ref,
 } from 'vue';
 import PPDialog from './PPDialog.vue';
-import PPBtn from '../buttons/PPBtn.vue';
+import PPBtn from '../TTBtn.vue';
 import PPCheckbox from '../PPCheckbox.vue';
 
 const props = defineProps({

@@ -40,6 +40,9 @@ export default defineComponent({
     },
   },
   methods: {
+    hide() {
+      this.visible = false;
+    },
     show() {
       this.visible = true;
     },

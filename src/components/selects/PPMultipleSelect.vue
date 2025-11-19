@@ -1,6 +1,6 @@
 <template>
   <q-select square :dark="props.dark" :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
-    multiple use-chips stack-label v-model="model">
+    multiple use-chips stack-label v-model="model" options-selected-class="text-grey">
     <template v-slot:selected-item="scope">
       <q-chip removable dense @remove="() => {
         if (scope.index >= 0 && scope.index < model.length) {

@@ -7,18 +7,18 @@
         label: 'Наименование',
         align: 'left',
         field: (row) => row.name,
-        format: (val) => `${val}`,
         sortable: true,
         style: 'min-width: 500px',
         edit: false,
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
-    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
-    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" :style="`height: ${props.contentHeight}px;`">
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :virtual-scroll-item-size="48"
+    :virtual-scroll-sticky-size-start="32" binary-state-sort :color="`${props.dark ? 'orange' : 'green'}`"
+    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" wrap-cells
+    grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
+    :style="`height: ${props.contentHeight}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <PPBtnAdd label="Новый" :click="() => {
+        <PPBtnAdd :click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
@@ -98,14 +98,15 @@
 import {
   ref,
   defineProps,
-  onActivated,
+  onMounted,
 } from 'vue';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPBtnDelete from 'src/components/buttons/PPBtnDelete.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 // import PPBtnChange from 'src/components/buttons/PPBtnChange.vue';
 
+document.title = 'Проекты';
 const props = defineProps({
   showError: Function,
   showConfirm: Function,
@@ -171,7 +172,7 @@ function remove() {
     });
   });
 }
-onActivated(() => {
+onMounted(() => {
   update();
 });
 </script>

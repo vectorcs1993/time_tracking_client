@@ -2,14 +2,11 @@
   <div :style="`width: 100%; height: ${props.contentHeight}px;`">
     <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
       <!-- Текущий отчёт -->
-      <PPTab v-model="tabConf" :dark="props.dark" @update:model-value="() => {
-        load = true;
-        updateInputFilter();
-      }">
-        <q-tab v-for="conf in configs" :key="conf" :name="`conf${conf.id}`">
-          {{ conf.name }}
-        </q-tab>
-      </PPTab>
+      <Tab v-model="tabConf" :tabs="configs.map(conf => ({ id: `conf${conf.id}`, name: conf.name }))" :dark="props.dark"
+        @update:model-value="() => {
+          load = true;
+          updateInputFilter();
+        }" />
     </div>
     <!-- Таблица с отчётом -->
     <q-table v-if="isAllowView(curentConfig)"
@@ -69,12 +66,13 @@ import {
   ref,
   defineProps,
 } from 'vue';
-import PPBtn from 'src/components/buttons/PPBtn.vue';
+import PPBtn from 'src/components/TTBtn.vue';
 import moment from 'moment/moment';
-import PPTab from 'src/components/PPTab.vue';
+import Tab from 'src/components/TTTab.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 
+document.title = 'Отчёты';
 const props = defineProps({
   showInfo: Function,
   contentHeight: Number,
@@ -120,14 +118,11 @@ function update(callback) {
         configs.value.push(conf);
       }
     });
-
     curentConfig.value = getObject(configs.value, Number(localStorage.getItem('report_time_traking')));
     if (!curentConfig.value) {
       [curentConfig.value] = configs.value;
     }
-    console.log(configs.value, curentConfig.value);
     tabConf.value = `conf${curentConfig.value.id}`;
-    console.log(tabConf.value);
 
     load.value = false;
     if (callback) {

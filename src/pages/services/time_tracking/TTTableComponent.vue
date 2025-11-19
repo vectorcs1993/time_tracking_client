@@ -1,119 +1,110 @@
 <template>
-  <div @keyup.esc="handleEsc" @click="selectRow" :style="`width: 100%; height: ${props.contentHeight}px;`">
-    <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
-      <!-- Текущая таблица -->
-      <Tab v-model="tabConf" :tabs="configs.map(conf => ({ id: `conf${conf.id}`, name: conf.name }))" :dark="props.dark"
-        @update:model-value="updateTab" />
-    </div>
-    <!-- Таблица -->
-    <q-table v-if="curentConfig" ref="table" dense
-      :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-      :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
-      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
-      selection="multiple" binary-state-sort :loading="load" :color="`${props.dark ? 'orange' : 'green'}`"
-      :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]"
-      no-data-label="Нет данных" grid-header :filter="inputFilter.search" v-model:selected="selected"
-      @row-click="selectRow" column-sort-order="da" style="height: 95%;">
-      <template v-slot:loading>
-        <PPLoading v-model="load" :dark="props.dark" />
-      </template>
-      <template v-slot:top>
-        <q-card-actions class="row q-gutter-sm full-width items-center">
-          <Btn label="" icon="sync" :click="requestRecords" :dark="props.dark" />
-          <Btn v-if="isAllowCreate()" :click="actionCreate" icon="add" :dark="props.dark" />
-          <Btn v-if="isAllowCreate() && selected.length === 1" icon="content_copy" :click="actionCopy"
-            :dark="props.dark" />
-          <Btn v-if="isAllowCreate() && isAllowDeleted()" icon="delete" :click="() => {
-            props.showConfirm('Удалить записи?', actionDelete);
-          }" :dark="props.dark" />
-          <!-- Фильтр подразделения -->
-          <TTSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
-            :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
-            style="width: 150px" />
-          <!-- Пользовательский Фильтр сотрудники -->
-          <TTSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <!-- Фильтр тип работы -->
-          <TTSelect v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
-            :options="inputFilter.type_works" @update:model-value="() => {
-              updateFilterTypeWork();
-              updateInputFilter();
-            }" :dark="props.dark" style="width: 200px;" />
-          <!-- Фильтр целевой объект/проект -->
-          <TTSelect v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
-            label="Целевой объект" v-model="inputFilter.type_activity" :options="inputFilter.activities"
-            @update:model-value="() => {
-              updateFilterTypeWork();
-              updateInputFilter();
-            }" :dark="props.dark" style="width: 200px;" />
-          <q-space />
-          <!-- Фильтр период -->
-          <TTSelect label="Период" :options="type_period" v-model="inputFilter.period"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <TTDatePicker label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <TTDatePicker label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <!-- Поиск -->
-          <TTInputTextSingle label="Поиск" v-model="inputFilter.search" @update:model-value="updateInputFilter"
-            :dark="props.dark" />
-        </q-card-actions>
-      </template>
-      <template v-slot:header-cell="props">
-        <q-th :props="props">
-          <div class="text-size">
-            {{ props.col.label }}
-          </div>
-        </q-th>
-      </template>
-      <template v-slot:pagination>
-        <div class="row q-gutter-sm items-center">
-          <div class="text-size">{{ returnSelectedInfo() }}</div>
-          <!-- Фильтр сортировка -->
-          <TTSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
-            @update:model-value="updateInputFilter" :dark="props.dark" />
-          <Btn v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" :click="exportReport"
-            :dark="props.dark" />
+  <!-- Таблица -->
+  <q-table v-if="curentConfig" ref="table" dense
+    :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
+    :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
+    :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
+    selection="multiple" binary-state-sort :loading="load" :color="`${props.dark ? 'orange' : 'green'}`"
+    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]"
+    no-data-label="Нет данных" grid-header :filter="inputFilter.search" v-model:selected="selected"
+    @row-click="selectRow" column-sort-order="da" :style="`height: ${props.contentHeight}`">
+    <template v-slot:loading>
+      <PPLoading v-model="load" :dark="props.dark" />
+    </template>
+    <template v-slot:top>
+      <q-card-actions class="row q-gutter-sm full-width items-center">
+        <Btn label="" icon="sync" :click="requestRecords" :dark="props.dark" />
+        <Btn v-if="isAllowCreate()" :click="actionCreate" icon="add" :dark="props.dark" />
+        <Btn v-if="isAllowCreate() && selected.length === 1" icon="content_copy" :click="actionCopy"
+          :dark="props.dark" />
+        <Btn v-if="isAllowCreate() && isAllowDeleted()" icon="delete" :click="() => {
+          props.showConfirm('Удалить записи?', actionDelete);
+        }" :dark="props.dark" />
+        <!-- Фильтр подразделения -->
+        <TTSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
+          :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
+          style="width: 150px" />
+        <!-- Пользовательский Фильтр сотрудники -->
+        <TTSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <!-- Фильтр тип работы -->
+        <TTSelect v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
+          :options="inputFilter.type_works" @update:model-value="() => {
+            updateFilterTypeWork();
+            updateInputFilter();
+          }" :dark="props.dark" style="width: 200px;" />
+        <!-- Фильтр целевой объект/проект -->
+        <TTSelect v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
+          label="Целевой объект" v-model="inputFilter.activity" :options="inputFilter.activities" @update:model-value="() => {
+            updateFilterTypeWork();
+            updateInputFilter();
+          }" :dark="props.dark" style="width: 200px;" />
+        <q-space />
+        <!-- Фильтр период -->
+        <TTSelect label="Период" :options="type_period" v-model="inputFilter.period"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <TTDatePicker label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <TTDatePicker label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <!-- Поиск -->
+        <TTInputTextSingle label="Поиск" v-model="inputFilter.search" @update:model-value="updateInputFilter"
+          :dark="props.dark" />
+      </q-card-actions>
+    </template>
+    <template v-slot:header-cell="props">
+      <q-th :props="props">
+        <div class="text-size">
+          {{ props.col.label }}
         </div>
-      </template>
-      <template v-slot:body-cell="props">
-        <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)}`">
-          <TTInputText
-            v-if="(props.col.type == 'text' || props.col.type == 'textarea') && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            v-model="props.row[props.col.name]" :update="() => {
-              save(props.col.name, props.row[props.col.name]);
-            }" />
-          <TTInputNumber
-            v-else-if="props.col.type == 'number' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            v-model="props.row[props.col.name]" :update="() => {
-              save(props.col.name, props.row[props.col.name]);
-            }" :dark="props.dark" />
-          <TTDatePicker
-            v-else-if="props.col.type == 'date' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            :cell="true" v-model="props.row[props.col.name]" :dark="props.dark"
-            @update:model-value="(val) => save(props.col.name, val)" />
-          <PPCheckbox :disable="!isAllowEdit(props.row.id, props.col.name, false)"
-            v-else-if="props.col.type == 'checkbox'" v-model="props.row[props.col.name]" :dark="props.dark"
-            @update:model-value="(val) => {
-              selected[0] = props.row;
-              save(props.col.name, val);
-            }" />
-          <TTSelect
-            v-else-if="props.col.type == 'selector' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            :cell="true" v-model="props.row[props.col.name]" :options="props.col.options(props.row)"
-            @update:model-value="(val) => {
-              if (props.col.name === 'type_work') updateTypeWork(props.row);
-              else save(props.col.name, val.id);
-            }" style="width: 100%" :dark="props.dark">
-          </TTSelect>
-          <div v-else class="text-size cell-content">
-            {{ props.value }}
-          </div>
-        </q-td>
-      </template>
-    </q-table>
-    <q-card-section v-else>Просмотр запрещен</q-card-section>
-  </div>
+      </q-th>
+    </template>
+    <template v-slot:pagination>
+      <div class="row q-gutter-sm items-center">
+        <div class="text-size">{{ returnSelectedInfo() }}</div>
+        <!-- Фильтр сортировка -->
+        <TTSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
+          @update:model-value="updateInputFilter" :dark="props.dark" />
+        <Btn v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" :click="exportReport"
+          :dark="props.dark" />
+      </div>
+    </template>
+    <template v-slot:body-cell="props">
+      <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)}`">
+        <TTInputText
+          v-if="(props.col.type == 'text' || props.col.type == 'textarea') && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
+          v-model="props.row[props.col.name]" :update="() => {
+            save(props.col.name, props.row[props.col.name]);
+          }" />
+        <TTInputNumber
+          v-else-if="props.col.type == 'number' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
+          v-model="props.row[props.col.name]" :update="() => {
+            save(props.col.name, props.row[props.col.name]);
+          }" :dark="props.dark" />
+        <TTDatePicker
+          v-else-if="props.col.type == 'date' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
+          :cell="true" v-model="props.row[props.col.name]" :dark="props.dark"
+          @update:model-value="(val) => save(props.col.name, val)" />
+        <PPCheckbox :disable="!isAllowEdit(props.row.id, props.col.name, false)"
+          v-else-if="props.col.type == 'checkbox'" v-model="props.row[props.col.name]" :dark="props.dark"
+          @update:model-value="(val) => {
+            selected[0] = props.row;
+            save(props.col.name, val);
+          }" />
+        <TTSelect
+          v-else-if="props.col.type == 'selector' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
+          :cell="true" v-model="props.row[props.col.name]" :options="props.col.options(props.row)" @update:model-value="(val) => {
+            if (props.col.name === 'type_work') updateTypeWork(props.row);
+            else save(props.col.name, val.id);
+          }" style="width: 100%" :dark="props.dark">
+        </TTSelect>
+        <div v-else class="text-size cell-content">
+          {{ props.value }}
+        </div>
+      </q-td>
+    </template>
+  </q-table>
+  <q-card-section v-else>Просмотр запрещен</q-card-section>
 </template>
 <script setup>
 import {
@@ -121,26 +112,29 @@ import {
   defineProps,
   onMounted,
 } from 'vue';
+import { useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/auth.js';
 import moment from 'moment/moment';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import Btn from 'src/components/TTBtn.vue';
-import Tab from 'src/components/TTTab.vue';
 import PPLoading from 'src/components/PPLoading.vue';
 import PPCheckbox from 'src/components/PPCheckbox.vue';
 import { getNameShort, isDateInRange, OPTION_ALL, TT_TYPE_FLAG } from './fun';
+import TTSelect from 'src/components/TTSelect.vue';
 import TTDatePicker from 'src/components/TTDatePicker.vue';
 import TTInputNumber from 'src/components/TTInputNumber.vue';
 import TTInputText from 'src/components/TTInputText.vue';
-import TTSelect from 'src/components/TTSelect.vue';
-import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
 
 const load = ref(false);
 const authStore = useAuthStore();
-const datetimeFormat = 'YYYY-MM-DD';
 
 document.title = 'Таблицы';
+
+const route = useRoute();
+const { id } = route.params;
+console.log(id);
+
 const props = defineProps({
   showInfo: Function,
   showConfirm: Function,
@@ -219,8 +213,8 @@ const inputFilter = ref({
   branch: undefined,
   branches: [],
   sorted: type_sorts[0],
-  dateStart: moment().subtract(1, 'days').format(datetimeFormat),
-  dateFinish: moment().format(datetimeFormat),
+  dateStart: moment().subtract(1, 'days').format('YYYY-MM-DD'),
+  dateFinish: moment().format('YYYY-MM-DD'),
   type_work: undefined,
   type_works: [],
   activity: undefined,
@@ -566,7 +560,6 @@ function getItem(val) {
   return Number(localStorage.getItem(val));
 }
 function requestRecords(callback) {
-  load.value = true;
   const day = moment();
   const yesterday = day.clone().subtract(1, 'days');
   const yesterday7 = day.clone().subtract(7, 'days');
@@ -574,29 +567,28 @@ function requestRecords(callback) {
   const yesterday180 = day.clone().subtract(180, 'days');
   // дата старта и финиша - сегодня
   if (inputFilter.value.period.id === 1) {
-    inputFilter.value.dateStart = day.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
+    inputFilter.value.dateStart = day.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
   } else if (inputFilter.value.period.id === 3) { // вчера
-    inputFilter.value.dateStart = yesterday.format(datetimeFormat);
-    inputFilter.value.dateFinish = yesterday.format(datetimeFormat);
+    inputFilter.value.dateStart = yesterday.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = yesterday.format('YYYY-MM-DD');
   } else if (inputFilter.value.period.id === 4) { // 7 дней
-    inputFilter.value.dateStart = yesterday7.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
+    inputFilter.value.dateStart = yesterday7.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
   } else if (inputFilter.value.period.id === 5) { // 30 дней
-    inputFilter.value.dateStart = yesterday30.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
+    inputFilter.value.dateStart = yesterday30.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
   } else if (inputFilter.value.period.id === 6) { // 180 дней
-    inputFilter.value.dateStart = yesterday180.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
+    inputFilter.value.dateStart = yesterday180.format('YYYY-MM-DD');
+    inputFilter.value.dateFinish = day.format('YYYY-MM-DD');
   } else if (inputFilter.value.period.id === 2) { // все данные
     inputFilter.value.dateStart = 'null';
     inputFilter.value.dateFinish = 'null';
   }
-
   authStore.authorizedRequest('get', `/records?order=${inputFilter.value.sorted.id
     }&branch=${inputFilter.value.branch.id
     }&type_work=${inputFilter.value.type_work.id
-    }&type_activity=${inputFilter.value.type_activity.id
+    }&activity=${inputFilter.value.activity.id
     }&user=${inputFilter.value.user.id
     }&dS=${inputFilter.value.dateStart
     }&dF=${inputFilter.value.dateFinish}`).then((res) => { // &columns=${columns.value.map((c) => c.name).join(',')}
@@ -610,13 +602,13 @@ function requestRecords(callback) {
         type_source: getObject(sources.value, rec.type_source),
         type_product: getObject(type_product, rec.type_product),
         createdRaw: rec.createdAt,
-        createdAt: moment(rec.createdAt).format(datetimeFormat),
+        createdAt: moment(rec.createdAt).format('YYYY-MM-DD'),
         updatedRaw: rec.updatedAt,
-        updatedAt: moment(rec.updatedAt).format(datetimeFormat),
+        updatedAt: moment(rec.updatedAt).format('YYYY-MM-DD'),
         dateStartOrderRaw: rec.dateStartOrder,
-        dateStartOrder: moment(rec.dateStartOrder).format(datetimeFormat),
+        dateStartOrder: moment(rec.dateStartOrder).format('YYYY-MM-DD'),
         dateFinishOrderRaw: rec.dateFinishOrder,
-        dateFinishOrder: moment(rec.dateFinishOrder).format(datetimeFormat),
+        dateFinishOrder: moment(rec.dateFinishOrder).format('YYYY-MM-DD'),
       })));
 
       load.value = false;
@@ -657,151 +649,151 @@ function update(callback) {
     load.value = true;
     // извлечение конфигурации таблицы
     configs.value.length = 0;
-    authStore.authorizedRequest('get', `all_configs`).then((respC) => {
-      respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
-        conf.allow_views = JSON.parse(conf.allow_views);
-        conf.allow_creates = JSON.parse(conf.allow_creates);
-        conf.allow_delete = JSON.parse(conf.allow_delete);
-        conf.allow_edit = JSON.parse(conf.allow_edit);
-        conf.cols = JSON.parse(conf.cols);
-        if (isAllowView(conf)) {
-          configs.value.push(conf);
+    // authStore.authorizedRequest('get', `all_configs`).then((respC) => {
+    // respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
+    //   conf.allow_views = JSON.parse(conf.allow_views);
+    //   conf.allow_creates = JSON.parse(conf.allow_creates);
+    //   conf.allow_delete = JSON.parse(conf.allow_delete);
+    //   conf.allow_edit = JSON.parse(conf.allow_edit);
+    //   conf.cols = JSON.parse(conf.cols);
+    //   if (isAllowView(conf)) {
+    //     configs.value.push(conf);
+    //   }
+    // });
+
+    // curentConfig.value = getObject(configs.value, getItem('config_time_traking'));
+
+    // if (!curentConfig.value) {
+    //   [curentConfig.value] = configs.value;
+    // }
+
+    tabConf.value = `conf${curentConfig.value.id}`;
+
+    inputFilter.value.on = curentConfig.value.filters;
+    columns.value.length = 0;
+    authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
+      fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
+      // формирование столбцов
+      // if (curentConfig.value.cols.length > 0) {
+      curentConfig.value.cols.forEach((col) => {
+        const findCol = columnsPerm.find((c) => c.name === col.field);
+        if (col.name !== undefined && col.name !== '') {
+          findCol.label = col.name;
+        } else {
+          findCol.label = findCol.name;
         }
+        columns.value.push(findCol);
       });
+      // } else {
 
-      curentConfig.value = getObject(configs.value, getItem('config_time_traking'));
+      //   columnsPerm.forEach((col) => {
+      //     const v = curentConfig.value[`v${col.name}`];
+      //     const o = curentConfig.value[`o${col.name}`];
+      //     if (v) {
+      //       col.order = o || 0;
+      //       columns.value.push(col);
+      //     }
+      //   });
+      //   columns.value = columns.value.sort((a, b) => {
+      //     if (a.order < b.order) {
+      //       return -1; // a идет перед b
+      //     }
+      //     if (a.order > b.order) {
+      //       return 1; // b идет перед a
+      //     }
+      //     return 0; // a и b равны
+      //   });
+      // }
 
-      if (!curentConfig.value) {
-        [curentConfig.value] = configs.value;
+      // установка фильтра тип работы
+      inputFilter.value.type_works.length = 0;
+      inputFilter.value.type_works.push(OPTION_ALL);
+      inputFilter.value.type_works.push(...type_works);
+      if (curentConfig.value.filters) {
+        inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
+      } else {
+        inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
+      }
+      if (!inputFilter.value.type_work) {
+        inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
       }
 
-      tabConf.value = `conf${curentConfig.value.id}`;
-
-      inputFilter.value.on = curentConfig.value.filters;
-      columns.value.length = 0;
-      authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
-        fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
-        // формирование столбцов
-        // if (curentConfig.value.cols.length > 0) {
-        curentConfig.value.cols.forEach((col) => {
-          const findCol = columnsPerm.find((c) => c.name === col.field);
-          if (col.name !== undefined && col.name !== '') {
-            findCol.label = col.name;
-          } else {
-            findCol.label = findCol.name;
-          }
-          columns.value.push(findCol);
-        });
-        // } else {
-
-        //   columnsPerm.forEach((col) => {
-        //     const v = curentConfig.value[`v${col.name}`];
-        //     const o = curentConfig.value[`o${col.name}`];
-        //     if (v) {
-        //       col.order = o || 0;
-        //       columns.value.push(col);
-        //     }
-        //   });
-        //   columns.value = columns.value.sort((a, b) => {
-        //     if (a.order < b.order) {
-        //       return -1; // a идет перед b
-        //     }
-        //     if (a.order > b.order) {
-        //       return 1; // b идет перед a
-        //     }
-        //     return 0; // a и b равны
-        //   });
-        // }
-
-        // установка фильтра тип работы
-        inputFilter.value.type_works.length = 0;
-        inputFilter.value.type_works.push(OPTION_ALL);
-        inputFilter.value.type_works.push(...type_works);
-        if (curentConfig.value.filters) {
-          inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
-        } else {
-          inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
+      // целевой объект
+      activities.value.length = 0;
+      authStore.authorizedRequest('get', `all_activities`).then((respA) => {
+        activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+        if (!inputFilter.value.activity) {
+          inputFilter.value.activity = getObject(inputFilter.value.activities, -1);
         }
-        if (!inputFilter.value.type_work) {
-          inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
-        }
+        // источники поступления задач
+        sources.value.length = 0;
+        authStore.authorizedRequest('get', `sources`).then((respS) => {
+          sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+          projects.value.length = 0;
+          // проекты
+          authStore.authorizedRequest('get', `all_projects`).then((respP) => {
+            projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+            branches.value.length = 0;
+            authStore.authorizedRequest('get', `branches`).then((respB) => {
+              branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+              inputFilter.value.branches.length = 0;
+              inputFilter.value.branches.push(OPTION_ALL);
+              inputFilter.value.branches.push(...branches.value);
+              if (curentConfig.value.filters) {
+                inputFilter.value.branch = getObject(inputFilter.value.branches, getItem('filter_branch'));
+              } else {
+                inputFilter.value.branch = getObject(inputFilter.value.branches, curentConfig.value.filter_branch);
+              }
+              if (!inputFilter.value.branch) {
+                inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
+              }
 
-        // целевой объект
-        activities.value.length = 0;
-        authStore.authorizedRequest('get', `all_activities`).then((respA) => {
-          activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-          if (!inputFilter.value.type_activity) {
-            inputFilter.value.type_activity = getObject(inputFilter.value.activities, -1);
-          }
-          // источники поступления задач
-          sources.value.length = 0;
-          authStore.authorizedRequest('get', `sources`).then((respS) => {
-            sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-            projects.value.length = 0;
-            // проекты
-            authStore.authorizedRequest('get', `all_projects`).then((respP) => {
-              projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-              branches.value.length = 0;
-              authStore.authorizedRequest('get', `branches`).then((respB) => {
-                branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-                inputFilter.value.branches.length = 0;
-                inputFilter.value.branches.push(OPTION_ALL);
-                inputFilter.value.branches.push(...branches.value);
-                if (curentConfig.value.filters) {
-                  inputFilter.value.branch = getObject(inputFilter.value.branches, getItem('filter_branch'));
-                } else {
-                  inputFilter.value.branch = getObject(inputFilter.value.branches, curentConfig.value.filter_branch);
-                }
-                if (!inputFilter.value.branch) {
-                  inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
-                }
+              inputFilter.value.activities.length = 0;
+              inputFilter.value.activities.push(OPTION_ALL);
+              inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
+              if (curentConfig.value.filters) {
+                inputFilter.value.activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
+              } else {
+                inputFilter.value.activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
+              }
 
-                inputFilter.value.activities.length = 0;
-                inputFilter.value.activities.push(OPTION_ALL);
-                inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
-                if (curentConfig.value.filters) {
-                  inputFilter.value.type_activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
-                } else {
-                  inputFilter.value.type_activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
-                }
-
-                users.value.length = 0;
-                authStore.authorizedRequest('get', `users`).then((respU) => {
-                  users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-                  users.value.forEach((u) => {
-                    u.name = getNameShort(u.name);
-                  });
-                  inputFilter.value.users.length = 0;
-                  inputFilter.value.users.push(OPTION_ALL);
-                  inputFilter.value.users.push(...users.value);
-                  // пользовательский фильтр Пользователь
-                  inputFilter.value.usersOnlyBranch.length = 0;
-                  inputFilter.value.usersOnlyBranch.push(OPTION_ALL);
-                  const optionsUsers = curentConfig.value.filter_branch !== -1 ? users.value.filter((u) => u.branch === curentConfig.value.filter_branch) : users.value;
-                  inputFilter.value.usersOnlyBranch.push(...optionsUsers);
-                  inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, getItem('filter_user'));
-                  if (!inputFilter.value.user) {
-                    inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, -1);
-                  }
-                  inputFilter.value.usersOnlyBranchNoAll.length = 0;
-                  inputFilter.value.usersOnlyBranchNoAll.push(...optionsUsers);
-
-                  inputFilter.value.sorted = getObject(type_sorts, localStorage.getItem('filter_sort'));
-                  if (!inputFilter.value.sorted) {
-                    [inputFilter.value.sorted] = type_sorts;
-                  }
-                  requestRecords(callback);
-                }).catch((err) => {
-                  console.log(err);
+              users.value.length = 0;
+              authStore.authorizedRequest('get', `users`).then((respU) => {
+                users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+                users.value.forEach((u) => {
+                  u.name = getNameShort(u.name);
                 });
+                inputFilter.value.users.length = 0;
+                inputFilter.value.users.push(OPTION_ALL);
+                inputFilter.value.users.push(...users.value);
+                // пользовательский фильтр Пользователь
+                inputFilter.value.usersOnlyBranch.length = 0;
+                inputFilter.value.usersOnlyBranch.push(OPTION_ALL);
+                const optionsUsers = curentConfig.value.filter_branch !== -1 ? users.value.filter((u) => u.branch === curentConfig.value.filter_branch) : users.value;
+                inputFilter.value.usersOnlyBranch.push(...optionsUsers);
+                inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, getItem('filter_user'));
+                if (!inputFilter.value.user) {
+                  inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, -1);
+                }
+                inputFilter.value.usersOnlyBranchNoAll.length = 0;
+                inputFilter.value.usersOnlyBranchNoAll.push(...optionsUsers);
+
+                inputFilter.value.sorted = getObject(type_sorts, localStorage.getItem('filter_sort'));
+                if (!inputFilter.value.sorted) {
+                  [inputFilter.value.sorted] = type_sorts;
+                }
+                requestRecords(callback);
               }).catch((err) => {
                 console.log(err);
               });
+            }).catch((err) => {
+              console.log(err);
             });
           });
         });
       });
     });
+    // });
   } catch (err) {
     console.log(err);
     records.value.length = 0;
@@ -810,7 +802,7 @@ function update(callback) {
 
 
 function actionCreate() {
-  const date = moment().format(datetimeFormat);
+  const date = moment().format('YYYY-MM-DD');
   localStorage.setItem('filter_date_finish', date);
 
   if (!isDateInRange(date, inputFilter.value.dateStart, inputFilter.value.dateFinish) && inputFilter.value.period.id !== 2) {
@@ -830,8 +822,8 @@ function actionCreate() {
     if (inputFilter.value.type_work.id !== -1) {
       createObject.type_work = inputFilter.value.type_work.id;
     }
-    if (inputFilter.value.type_activity.id !== -1) {
-      createObject.type_activity = inputFilter.value.type_activity.id;
+    if (inputFilter.value.activity.id !== -1) {
+      createObject.type_activity = inputFilter.value.activity.id;
     }
   }
   authStore.authorizedRequest('post', `records`, createObject).then((res) => {
@@ -849,7 +841,7 @@ function actionCreate() {
 }
 
 function actionCopy() {
-  const date = moment().format(datetimeFormat);
+  const date = moment().format('YYYY-MM-DD');
   localStorage.setItem('filter_date_finish', date);
   authStore.authorizedRequest('get', `/services/genprice/TimeTracking/${selected.value[0].id}`).then((res) => {
     const copyingObject = res.data.data;
@@ -888,11 +880,6 @@ function actionDelete() {
     props.showInfo('Ошибка удаления записи');
   });
 }
-function handleEsc() {
-  selected.value.length = 0;
-  update();
-}
-
 function save(col, value) {
   if (value !== undefined) {
     const updateRow = {};
@@ -909,7 +896,7 @@ function updateFilterTypeWork() {
   inputFilter.value.activities.push(OPTION_ALL);
   inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
   if (inputFilter.value.type_work.id === -1) {
-    [inputFilter.value.type_activity] = inputFilter.value.activities;
+    [inputFilter.value.activity] = inputFilter.value.activities;
   }
 }
 function saveForLocalStorage() {
@@ -917,18 +904,13 @@ function saveForLocalStorage() {
   localStorage.setItem('filter_branch', inputFilter.value.branch.id);
   localStorage.setItem('filter_sort', inputFilter.value.sorted.id);
   localStorage.setItem('filter_type_work', inputFilter.value.type_work.id);
-  localStorage.setItem('filter_activity', inputFilter.value.type_activity.id);
+  localStorage.setItem('filter_activity', inputFilter.value.activity.id);
   localStorage.setItem('config_time_traking', Number(tabConf.value.substr(4)));
   localStorage.setItem('filter_date_start', inputFilter.value.dateStart);
   localStorage.setItem('filter_date_finish', inputFilter.value.dateFinish);
   if (String(inputFilter.value.search) === 'null') inputFilter.value.search = '';
   localStorage.setItem('filter_period', inputFilter.value.period.id);
   localStorage.setItem('filter_search', inputFilter.value.search);
-}
-function updateTab() {
-  selected.value.length = 0;
-  saveForLocalStorage();
-  update();
 }
 function updateInputFilter() {
   selected.value.length = 0;
@@ -990,6 +972,36 @@ function returnSelectedInfo() {
 // }
 
 onMounted(() => {
-  update();
+  authStore.authorizedRequest('get', `configs/${id}`).then((respConf) => {
+    const conf = respConf.data[0];
+    conf.allow_views = JSON.parse(conf.allow_views);
+    conf.allow_creates = JSON.parse(conf.allow_creates);
+    conf.allow_delete = JSON.parse(conf.allow_delete);
+    conf.allow_edit = JSON.parse(conf.allow_edit);
+    conf.cols = JSON.parse(conf.cols);
+    if (isAllowView(conf)) {
+      configs.value.push(conf);
+    }
+    curentConfig.value = conf;
+    // respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
+    //   conf.allow_views = JSON.parse(conf.allow_views);
+    //   conf.allow_creates = JSON.parse(conf.allow_creates);
+    //   conf.allow_delete = JSON.parse(conf.allow_delete);
+    //   conf.allow_edit = JSON.parse(conf.allow_edit);
+    //   conf.cols = JSON.parse(conf.cols);
+    //   if (isAllowView(conf)) {
+    //     configs.value.push(conf);
+    //   }
+    // });
+
+
+
+    // if (!curentConfig.value) {
+    //   [curentConfig.value] = configs.value;
+    // }
+    update();
+  }).catch(() => {
+    props.showError('Ошибка загрузки конфигурации');
+  })
 });
 </script>
