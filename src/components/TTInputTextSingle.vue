@@ -1,5 +1,5 @@
 <template>
-  <div class="pp-cell-wrapper" style="cursor: text;" :class="props.inputClass">
+  <div :class="{ 'pp-cell-wrapper': true, ...props.inputClass, 'text-size': true }">
     <div :class="[cell ? 'pp-text-trigger' : 'pp-text-trigger-regular', props.dark ? 'pp-dark' : 'pp-light']">
       <div v-if="props.label" style="font-size: xx-small;">{{ props.label }}</div>
       <input ref="inputRef" type="text" :value="model" @input="handleInput" @focus="handleFocus" @blur="handleBlur"
@@ -16,6 +16,10 @@ const props = defineProps({
   update: Function,
   label: String,
   inputClass: String,
+  cell: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 const model = defineModel();

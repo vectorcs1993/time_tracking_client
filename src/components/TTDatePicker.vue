@@ -26,7 +26,7 @@
       </div>
 
       <div class="pp-date-picker-actions">
-        <PPBtn @click="selectToday" label="Сегодня" :dark="props.dark" />
+        <Button @click="selectToday" label="Сегодня" :dark="props.dark" />
       </div>
     </div>
   </div>
@@ -35,7 +35,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { dropdownManager } from './dropdownManager.js';
-import PPBtn from './TTBtn.vue';
+import Button from './TTBtn.vue';
 
 const props = defineProps({
   dark: Boolean,

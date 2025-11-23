@@ -80,22 +80,25 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async authorizedRequest(method, url, data = null) {
+    async authorizedRequest(method, url, data = null, responseType) {
 
       const requestConfig = {
         method: method.toLowerCase(),
         url,
       };
 
+      if (responseType) requestConfig.responseType = responseType;
 
       if (data && (method.toLowerCase() === 'post' || method.toLowerCase() === 'put' || method.toLowerCase() === 'patch')) {
         requestConfig.data = data;
       }
       console.log(requestConfig);
+
       try {
         const response = await api(requestConfig);
         return response;
       } catch (error) {
+        console.log(error);
 
         if (error.response?.status === 401 || error.response?.status === 403) {
           try {
@@ -201,5 +204,35 @@ export const useAuthStore = defineStore('auth', {
         this.clearAuthData();
       }
     },
+    downloadExcel(url, data) {
+      return new Promise((resolve, reject) => {
+        this.authorizedRequest('post', url, data, 'blob').then((response) => {
+          // Получаем имя файла из заголовка Content-Disposition
+          const contentDisposition = response.headers['content-disposition'];
+          let fileName = 'document.xlsx'; // значение по умолчанию
+
+          if (contentDisposition) {
+            const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (fileNameMatch && fileNameMatch[1]) {
+              fileName = fileNameMatch[1];
+            }
+          }
+
+          const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+          const fileLink = document.createElement("a");
+          fileLink.href = fileURL;
+          fileLink.setAttribute("download", fileName);
+          document.body.appendChild(fileLink);
+          fileLink.click();
+          // Очистка
+          window.URL.revokeObjectURL(fileURL);
+          document.body.removeChild(fileLink);
+          resolve();
+        }).catch((error) => {
+          console.error('Download error:', error);
+          reject(error);
+        });
+      });
+    }
   }
 })

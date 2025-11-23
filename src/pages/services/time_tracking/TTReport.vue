@@ -1,11 +1,11 @@
 <template>
-  <div :style="`width: 100%; height: ${props.contentHeight}px;`">
+  <div :style="`width: 100%; height: ${props.contentHeight || 400}px;`">
     <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
       <!-- Текущий отчёт -->
       <Tab v-model="tabConf" :tabs="configs.map(conf => ({ id: `conf${conf.id}`, name: conf.name }))" :dark="props.dark"
         @update:model-value="() => {
           load = true;
-          updateInputFilter();
+          updateInputFilter(() => createReport());
         }" />
     </div>
     <!-- Таблица с отчётом -->
@@ -27,11 +27,9 @@
               :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
               v-model="inputFilter.dateFinish" @update:model-value="updateInputFilter" />
           </div>
-          <PPBtn label="Сформировать" color="green" :click="createReportV2" :dark="props.dark" />
-          <PPBtn v-if="rows.length > 0" label="Экспорт в EXCEL" :click="exportReport" :dark="props.dark" />
+          <Button label="Сформировать" color="green" @click="createReport" :dark="props.dark" />
+          <Button v-if="rows.length > 0" label="Экспорт в EXCEL" @click="exportReport" :dark="props.dark" />
           <q-space />
-          <!-- Поиск -->
-          <PPSearchInput v-model="inputFilter.search" :dark="props.dark" />
         </q-card-actions>
       </template>
       <template v-slot:pagination>
@@ -66,10 +64,9 @@ import {
   ref,
   defineProps,
 } from 'vue';
-import PPBtn from 'src/components/TTBtn.vue';
+import Button from 'src/components/TTBtn.vue';
 import moment from 'moment/moment';
 import Tab from 'src/components/TTTab.vue';
-import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 
 document.title = 'Отчёты';
@@ -132,7 +129,7 @@ function update(callback) {
     }
   });
 }
-function createReportV2() {
+function createReport() {
   rows.value.length = 0;
   total.value = undefined;
   load.value = true;
@@ -169,13 +166,13 @@ function createReportV2() {
 //     props.showInfo(err);
 //   });
 // }
-function updateInputFilter() {
+function updateInputFilter(callback) {
   localStorage.setItem('report_time_traking', Number(tabConf.value.substr(4)));
   localStorage.setItem('report_filter_date_start', inputFilter.value.dateStart);
   localStorage.setItem('report_filter_date_finish', inputFilter.value.dateFinish);
   rows.value.length = 0;
   total.value = undefined;
-  update();
+  update(callback);
 }
 function returnSelectedInfo() {
   return `Всего объектов: ${rows.value.length}`;
@@ -193,7 +190,7 @@ onMounted(() => {
     users.value.length = 0;
     props.authStore.authorizedRequest('get', `users`).then((respU) => {
       users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-      update();
+      update(createReport);
     });
   });
 });

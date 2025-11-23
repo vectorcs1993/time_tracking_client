@@ -5,6 +5,7 @@
   font-family: customfont;
   src: url(src/css/fonts/centurygothic.ttf);
 }
+
 :root {
   --text-size: 14px;
   --text-color-dark: rgb(244, 244, 244);
@@ -126,30 +127,65 @@ body {
 .pp-tooltip {
   background-color: var(--q-primary);
   color: var(--text-color-dark);
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
   border-radius: 0;
 }
 .pp-tooltip.dark {
   background-color: var(--q-secondary);
   color: var(--text-color-dark);
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
 }
 
-// кнопка
-.pp-button-dark {
-  background-color: var(--q-secondary) !important;
-  color: var(--text-color-dark) !important;
-}
-.pp-button-light {
-  background-color: var(--q-secondary) !important;
-  color: var(--text-color-dark) !important;
-}
-
+// обертка элемента
 .pp-cell-wrapper {
   height: 100%;
   position: relative;
   min-height: 44px;
 }
+
+// ячейка таблицы
+.cell-content {
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  text-align: start;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  line-height: normal;
+}
+// кнопка
+.pp-button {
+  height: max-content;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  border: none;
+}
+.pp-button-dark {
+  background-color: var(--q-secondary);
+  color: var(--text-color-dark);
+}
+.pp-button-light {
+  background-color: var(--q-secondary);
+  color: var(--text-color-dark);
+}
+.pp-button-dark:hover {
+  background-color: var(--hover);
+  color: var(--text-color-dark);
+}
+.pp-button-dark:active {
+  background-color: var(--selection);
+  color: var(--text-color-dark);
+}
+
 // текстовый ввод
 .pp-text-trigger {
   width: 100%;
@@ -198,7 +234,7 @@ body {
   -moz-appearance: none;
   appearance: none;
   background: inherit !important;
-  background: var(--q-secondary) !important;
+  background: inherit !important;
   line-height: normal;
 }
 // числовой ввод
@@ -519,18 +555,64 @@ body {
   background: var(--hover);
 }
 
-// ячейка таблицы
-.cell-content {
+// множественный селект
+.pp-multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  height: 100%;
-  min-height: 44px;
-  border: none;
-  outline: none;
-  padding: 0;
+}
+.pp-checkbox {
   margin: 0;
-  text-align: start;
-  resize: none;
-  overflow: hidden;
-  white-space: pre-wrap;
-  line-height: normal;
+}
+.pp-multiselect-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-top: 1px solid #eee;
+  gap: 8px;
+}
+.pp-no-options {
+  padding: 12px;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+}
+/* Стили для темной темы */
+.pp-dark-options .pp-multiselect-actions {
+  border-top-color: #555;
+}
+.pp-dark-options .pp-no-options {
+  color: #aaa;
+}
+
+// чекбокс
+.pp-checkbox {
+  min-width: 20px;
+  min-height: 20px;
+  cursor: pointer;
+  margin: 2px;
+  padding: 0px;
+  border: 2px solid var(--q-accent);
+  border-radius: 0px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--q-primary);
+  cursor: pointer;
+}
+
+.pp-checkbox:checked {
+  background-color: var(--selection);
+  border-color: var(--q-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.pp-checkbox:disabled {
+  background-color: var(--selection);
+}
+
+.pp-checkbox:disabled:checked {
+  background-color: var(--selection);
 }

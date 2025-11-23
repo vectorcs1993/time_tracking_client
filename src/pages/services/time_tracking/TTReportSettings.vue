@@ -4,10 +4,10 @@
     :hide-selected-banner="true" selection="none" binary-state-sort :hide-pagination="false"
     v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header no-data-label="Нет данных"
     :filter="filter" v-model:expanded="expanded" v-model:selected="selected" @row-click="selectRow"
-    :style="`height: ${props.contentHeight}px;`">
+    :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <PPBtnAdd :dark="props.dark" :click="() => {
+        <PPBtnAdd :dark="props.dark" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
           selected.length = 0;
@@ -64,11 +64,11 @@
         </div>
         <PPBtn v-else-if="props.col.type == 'table'" icon="edit" :dark="props.dark"
           :disable="props.col.funcDisable ? props.col.funcDisable(props.row, props.col) : true"
-          :click="() => props.row.colTableVisible = true">
+          @click="() => props.row.colTableVisible = true">
           <PPDialog v-model="props.row.colTableVisible" label="Настройка столбцов" persistent :dark="props.dark"
             styleContent="width: 90vw; max-width: 90vw; height: 85vh;">
             <q-card-actions>
-              <PPBtnAdd label="Новый столбец" :click="() => {
+              <PPBtnAdd label="Новый столбец" @click="() => {
                 props.row.colTableSelected.length = 0;
                 const typeColumns = props.col.columns(props.row);
                 if (typeColumns === 'allWorks') {
@@ -77,16 +77,16 @@
                   addColumnForColTableProject(props.row.cols);
                 }
               }" :dark="props.dark" />
-              <PPBtn v-if="props.row.colTableSelected.length > 0" icon="delete" :click="() => {
+              <PPBtn v-if="props.row.colTableSelected.length > 0" icon="delete" @click="() => {
                 deleteColumnForColTable(props.row.cols, props.row.colTableSelected);
               }" :dark="props.dark" />
-              <PPBtn v-if="props.row.colTableSelected.length === 1" label="Вверх" icon="arrow_upward" :click="() => {
+              <PPBtn v-if="props.row.colTableSelected.length === 1" label="Вверх" icon="arrow_upward" @click="() => {
                 moveUpColumnForColTable(props.row.cols, props.row.colTableSelected);
               }" :dark="props.dark" />
-              <PPBtn v-if="props.row.colTableSelected.length === 1" label="Вниз" icon="arrow_downward" :click="() => {
+              <PPBtn v-if="props.row.colTableSelected.length === 1" label="Вниз" icon="arrow_downward" @click="() => {
                 moveDownColumnForColTable(props.row.cols, props.row.colTableSelected);
               }" :dark="props.dark" />
-              <PPBtn label="Сохранить" icon="save" :click="() => {
+              <PPBtn label="Сохранить" icon="save" @click="() => {
                 const typeColumns = props.col.columns(props.row);
                 if (typeColumns === 'allWorks') {
                   saveColTable(props.row.cols);
@@ -94,10 +94,10 @@
                   saveColTableProject(props.row.cols)
                 }
               }" :dark="props.dark" />
-              <PPBtn v-if="props.row.colTableSelected.length > 0" label="Копировать строки" icon="content_copy" :click="() => {
+              <PPBtn v-if="props.row.colTableSelected.length > 0" label="Копировать строки" icon="content_copy" @click="() => {
                 copyColTable(props.row.colTableSelected);
               }" :dark="props.dark" />
-              <PPBtn v-if="bufferTable.length > 0" label="Вставить строки" icon="content_paste" :click="() => {
+              <PPBtn v-if="bufferTable.length > 0" label="Вставить строки" icon="content_paste" @click="() => {
                 props.row.colTableSelected.length = 0;
                 pasteColTable(props.row.cols);
               }" :dark="props.dark" />
@@ -319,7 +319,7 @@ import { type_work_progress } from 'src/pages/services/time_tracking/type_work_p
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
 import PPBtn from 'src/components/TTBtn.vue';
-import PPDialog from 'src/components/dialogs/PPDialog.vue';
+import PPDialog from 'src/components/PPDialog.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import PPCheckbox from 'src/components/PPCheckbox.vue';
@@ -441,7 +441,7 @@ function update() {
     props.authStore.authorizedRequest('get', `branches`).then((respB) => {
       branches_mod.value.push(...respB.data);
       projects_mod.value.length = 0;
-      props.authStore.authorizedRequest('get', `all_projects`).then((respP) => {
+      props.authStore.authorizedRequest('get', `projects`).then((respP) => {
         projects.value.push(...respP.data);
         projects_mod.value.push({
           id: -1,
@@ -449,7 +449,7 @@ function update() {
         });
         projects_mod.value.push(...respP.data);
         type_activities_mod.value.length = 0;
-        props.authStore.authorizedRequest('get', `all_activities`).then((respA) => {
+        props.authStore.authorizedRequest('get', `activities`).then((respA) => {
           type_activities_mod.value.push({
             id: -1,
             name: 'Все',

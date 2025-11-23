@@ -50,7 +50,14 @@ const routes = [
         },
       },
       {
-        path: '/settings/tables', component: () => import('src/pages/services/time_tracking/TTTableSettings.vue'),
+        path: '/configurations/tables', component: () => import('src/pages/services/time_tracking/TTConfigurationsTables.vue'),
+        meta: {
+          requiresAuth: true,
+          allowedRoles: ['admin'],
+        },
+      },
+      {
+        path: '/configurations/table/:id', component: () => import('src/pages/services/time_tracking/TTConfigurationTable.vue'),
         meta: {
           requiresAuth: true,
           allowedRoles: ['admin'],

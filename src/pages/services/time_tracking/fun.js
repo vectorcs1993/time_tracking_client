@@ -3,7 +3,7 @@ import moment from "moment";
 export function getObject(list, val) {
   return list.find((r) => r.id === val);
 }
-export const TT_TYPE_FLAG = 'TINYINT(1)';
+export const TT_TYPE_FLAG = 'tinyint(1)';
 export const STRING_NO_SELECT = 'Не выбрано';
 export const OPTION_ALL = {
   id: -1,

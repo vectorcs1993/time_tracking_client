@@ -11,24 +11,24 @@
         style: 'min-width: 500px',
         edit: false,
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :virtual-scroll-item-size="48"
-    :virtual-scroll-sticky-size-start="32" binary-state-sort :color="`${props.dark ? 'orange' : 'green'}`"
-    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" wrap-cells
-    grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
-    :style="`min-height: ${props.contentHeight}px;`">
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
+    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
+    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
+    v-model:selected="selected" :loading="load" @row-click="selectRow"
+    :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <PPBtnAdd :click="() => {
+        <Button label="Новый источник поступления" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
-        <PPBtn v-show="selected.length > 0" icon="edit" :click="() => {
+        <Button label="Изменить" v-if="selected.length > 0" icon="edit" @click="() => {
           dialogUpdate = true;
           modelInput.name = selected[0].name;
         }" :dark="props.dark" />
-        <PPBtn icon="delete" v-show="selected.length > 0" :click="remove" :dark="props.dark" />
+        <Button disable label="Удалить" icon="delete" v-if="selected.length > 0" @click="remove" :dark="props.dark" />
         <q-space />
-        <PPSearchInput v-model="filter" debounce="300" :dark="props.dark" />
+        <TTInputTextSingle label="Поиск" v-model="filter" debounce="300" :dark="props.dark" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
@@ -49,21 +49,24 @@
         </div>
       </q-td>
     </template>
+    <template v-slot:header-selection="props">
+      <TTCheckbox v-model="props.selected" />
+    </template>
+    <template v-slot:body-selection="props">
+      <TTCheckbox v-model="props.selected" />
+    </template>
   </q-table>
-  <PPDialog v-model="dialogAdd" label="Новый источник поступления" :dark="props.dark">
+  <PPDialog v-model="dialogAdd" label="Новый источник поступления" :dark="props.dark" styleContent="width: 400px;">
     <q-card-section>
-      <form @submit.prevent="add">
-        <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-        <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Создать</PPBtn>
-      </form>
+      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+      <Button :disable="!modelInput.name" label="Создать" :dark="props.dark" @click="add" />
     </q-card-section>
   </PPDialog>
-  <PPDialog v-model="dialogUpdate" label="Изменение источника поступления" :dark="props.dark">
+  <PPDialog v-model="dialogUpdate" label="Изменение источника поступления" :dark="props.dark"
+    styleContent="width: 400px;">
     <q-card-section>
-      <form @submit.prevent="change">
-        <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-        <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Изменить</PPBtn>
-      </form>
+      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+      <Button :disable="!modelInput.name" label="Изменить" :dark="props.dark" @click="change" />
     </q-card-section>
   </PPDialog>
 </template>
@@ -73,11 +76,10 @@ import {
   defineProps,
   onMounted,
 } from 'vue';
-import PPDialog from 'src/components/dialogs/PPDialog.vue';
-import PPBtn from 'src/components/TTBtn.vue';
-import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
-import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
-import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
+import PPDialog from 'src/components/PPDialog.vue';
+import Button from 'src/components/TTBtn.vue';
+import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
+import TTCheckbox from 'src/components/TTCheckbox.vue';
 
 document.title = 'Источники поступлений';
 const props = defineProps({
@@ -91,6 +93,7 @@ const props = defineProps({
 
 
 const rows = ref([]);
+const load = ref(false);
 const filter = ref('');
 const selected = ref([]);
 const dialogAdd = ref(false);
@@ -104,10 +107,12 @@ const pagination = ref({
 });
 
 function update() {
+  load.value = true;
   selected.value.length = 0;
   rows.value.length = 0;
   props.authStore.authorizedRequest('get', `sources`).then((resp) => {
     rows.value.push(...resp.data);
+    load.value = false;
   }).catch((err) => {
     console.log(err);
     props.showError('Ошибка при загрузке данных');

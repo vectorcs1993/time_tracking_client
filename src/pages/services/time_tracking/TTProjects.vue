@@ -11,31 +11,24 @@
         style: 'min-width: 500px',
         edit: false,
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :virtual-scroll-item-size="48"
-    :virtual-scroll-sticky-size-start="32" binary-state-sort :color="`${props.dark ? 'orange' : 'green'}`"
-    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" wrap-cells
-    grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
-    :style="`height: ${props.contentHeight}px;`">
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
+    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
+    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
+    :loading="load" v-model:selected="selected" @row-click="selectRow"
+    :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <PPBtnAdd :click="() => {
+        <Button label="Новый проект" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
-        <!-- <q-btn color='dark-grey' icon="add" @click="" /> -->
-        <!-- <q-btn color='dark-grey' v-show="selected.length > 0" icon="edit" @click="() => {
+        <Button v-if="selected.length > 0" label="Изменить" @click="() => {
           dialogUpdate = true;
           modelInput.name = selected[0].name;
-        }" /> -->
-        <PPBtnDelete v-show="selected.length > 0" disable :click="remove" :dark="props.dark" />
-        <!-- <q-btn disable color='dark-grey' icon="delete" v-show="selected.length > 0" @click="remove" /> -->
+        }" :dark="props.dark" />
+        <Button label="Удалить" v-if="selected.length > 0" disable @click="remove" :dark="props.dark" />
         <q-space />
-        <q-input :dark="props.dark" outlined dense debounce="300" v-model="filter" clearable placeholder="Поиск"
-          style="margin: 10px;">
-          <template v-slot:append>
-            <q-icon name="search" />
-          </template>
-        </q-input>
+        <TTInputTextSingle label="Поиск" :dark="props.dark" v-model="filter" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
@@ -56,43 +49,26 @@
         </div>
       </q-td>
     </template>
+    <template v-slot:header-selection="props">
+      <TTCheckbox v-model="props.selected" />
+    </template>
+    <template v-slot:body-selection="props">
+      <TTCheckbox v-model="props.selected" />
+    </template>
   </q-table>
-  <q-dialog v-model="dialogAdd" persistent>
-    <q-card :class="`${props.dark ? 'pp-dark' : 'pp-light'} q-pt-none`" :dark="props.dark" class="q-pt-none"
-      style="width: 400px; max-width: 95vw;">
-      <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div>Новый проект</div>
-        <q-space />
-        <q-btn dense flat icon="close" v-close-popup>
-          <q-tooltip class="bg-grey text-white">Закрыть</q-tooltip>
-        </q-btn>
-      </q-bar>
-      <q-card-section>
-        <form @submit.prevent="add">
-          <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-          <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Создать</PPBtn>
-        </form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
-  <q-dialog v-model="dialogUpdate" persistent>
-    <q-card :class="`${props.dark ? 'pp-dark' : 'pp-light'} q-pt-none`" :dark="props.dark" class="q-pt-none"
-      style="width: 400px; max-width: 95vw;">
-      <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div>Изменение данных проекта</div>
-        <q-space />
-        <q-btn dense flat icon="close" v-close-popup>
-          <q-tooltip class="bg-grey text-white">Закрыть</q-tooltip>
-        </q-btn>
-      </q-bar>
-      <q-card-section>
-        <form @submit.prevent="change">
-          <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-          <PPBtn :dark="props.dark" class="q-ma-md" type="submit">Изменить</PPBtn>
-        </form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+  <PPDialog label="Новый проект" v-model="dialogAdd" :dark="props.dark" styleContent="width: 400px;">
+    <q-card-section>
+      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+      <Button label="Создать" :disable="!modelInput.name" :dark="props.dark" @click="add" />
+    </q-card-section>
+  </PPDialog>
+
+  <PPDialog label="Изменение проекта" v-model="dialogUpdate" :dark="props.dark" styleContent="width: 400px;">
+    <q-card-section>
+      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+      <Button label="Изменить" :disable="!modelInput.name" :dark="props.dark" @click="change" />
+    </q-card-section>
+  </PPDialog>
 </template>
 <script setup>
 import {
@@ -100,11 +76,10 @@ import {
   defineProps,
   onMounted,
 } from 'vue';
-import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
-import PPBtnDelete from 'src/components/buttons/PPBtnDelete.vue';
-import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
-import PPBtn from 'src/components/TTBtn.vue';
-// import PPBtnChange from 'src/components/buttons/PPBtnChange.vue';
+import Button from 'src/components/TTBtn.vue';
+import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
+import TTCheckbox from 'src/components/TTCheckbox.vue';
+import PPDialog from 'src/components/PPDialog.vue';
 
 document.title = 'Проекты';
 const props = defineProps({
@@ -117,6 +92,7 @@ const props = defineProps({
 });
 
 const rows = ref([]);
+const load = ref(false);
 const filter = ref('');
 const selected = ref([]);
 const dialogAdd = ref(false);
@@ -130,9 +106,12 @@ const pagination = ref({
 });
 
 function update() {
-  rows.value.length = 0;
-  props.authStore.authorizedRequest(`get`, 'all_projects').then((resp) => {
+  selected.value.length = 0;
+  load.value = true;
+  props.authStore.authorizedRequest(`get`, 'projects').then((resp) => {
+    rows.value.length = 0;
     rows.value.push(...resp.data);
+    load.value = false;
   }).catch((err) => {
     console.log(err);
   });
@@ -143,33 +122,23 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingProject/create`, query)
-    .then((res) => {
-      dialogAdd.value = false;
-      if (res.data.result === 'ok') {
-        update();
-      } else if (res.data.data === 'name must be unique') {
-        props.showError(`Проект "${query.name}" уже существует в базе данных`);
-      }
-    });
+  props.authStore.authorizedRequest('post', `projects`, query).then(() => {
+    dialogAdd.value = false;
+    update();
+  }).catch(() => props.showError('Ошибка при создании данных'));
 }
 function change() {
   const query = { name: modelInput.value.name };
-  props.authStore.authorizedRequest(`/services/genprice/TimeTrackingProject/update/${selected.value[0].id}`, query)
-    .then((res) => {
-      dialogUpdate.value = false;
-      if (res.data.result === 'ok') {
-        update();
-      } else if (res.data.data === 'name must be unique') {
-        props.showError(`Проект "${query.name}" уже существует в базе данных`);
-      }
-    });
+  props.authStore.authorizedRequest('post', `projects/${selected.value[0].id}`, query).then(() => {
+    dialogUpdate.value = false;
+    update();
+  }).catch(() => props.showError('Ошибка при изменении данных'));
 }
 function remove() {
   props.showConfirm(`Удалить проект ${selected.value[0].name}?`, () => {
-    props.authStore.authorizedRequest(`/services/genprice/TimeTrackingProject/delete/${selected.value[0].id}`).then(() => {
+    props.authStore.authorizedRequest('delete', `projects/${selected.value[0].id}`).then(() => {
       update();
-    });
+    }).catch(() => props.showError('Ошибка при удалении данных'));
   });
 }
 onMounted(() => {

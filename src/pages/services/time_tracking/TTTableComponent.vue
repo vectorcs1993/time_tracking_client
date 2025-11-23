@@ -13,11 +13,11 @@
     </template>
     <template v-slot:top>
       <q-card-actions class="row q-gutter-sm full-width items-center">
-        <Btn label="" icon="sync" :click="requestRecords" :dark="props.dark" />
-        <Btn v-if="isAllowCreate()" :click="actionCreate" icon="add" :dark="props.dark" />
-        <Btn v-if="isAllowCreate() && selected.length === 1" icon="content_copy" :click="actionCopy"
+        <Button label="" icon="sync" @click="requestRecords" :dark="props.dark" />
+        <Button v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
+        <Button v-if="isAllowCreate() && selected.length === 1" icon="content_copy" @click="actionCopy"
           :dark="props.dark" />
-        <Btn v-if="isAllowCreate() && isAllowDeleted()" icon="delete" :click="() => {
+        <Button v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
           props.showConfirm('Удалить записи?', actionDelete);
         }" :dark="props.dark" />
         <!-- Фильтр подразделения -->
@@ -44,12 +44,12 @@
         <TTSelect label="Период" :options="type_period" v-model="inputFilter.period"
           @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
         <TTDatePicker label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
-          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 100px;" />
         <TTDatePicker label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
-          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 100px;" />
         <!-- Поиск -->
         <TTInputTextSingle label="Поиск" v-model="inputFilter.search" @update:model-value="updateInputFilter"
-          :dark="props.dark" />
+          :dark="props.dark" style="width: 200px;" />
       </q-card-actions>
     </template>
     <template v-slot:header-cell="props">
@@ -65,7 +65,7 @@
         <!-- Фильтр сортировка -->
         <TTSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
           @update:model-value="updateInputFilter" :dark="props.dark" />
-        <Btn v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" :click="exportReport"
+        <Button v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" @click="exportReport"
           :dark="props.dark" />
       </div>
     </template>
@@ -113,11 +113,11 @@ import {
   onMounted,
 } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth.js';
+import { useAuthStore } from 'src/stores/store.js';
 import moment from 'moment/moment';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
-import Btn from 'src/components/TTBtn.vue';
+import Button from 'src/components/TTBtn.vue';
 import PPLoading from 'src/components/PPLoading.vue';
 import PPCheckbox from 'src/components/PPCheckbox.vue';
 import { getNameShort, isDateInRange, OPTION_ALL, TT_TYPE_FLAG } from './fun';
@@ -720,7 +720,7 @@ function update(callback) {
 
       // целевой объект
       activities.value.length = 0;
-      authStore.authorizedRequest('get', `all_activities`).then((respA) => {
+      authStore.authorizedRequest('get', `activities`).then((respA) => {
         activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
         if (!inputFilter.value.activity) {
           inputFilter.value.activity = getObject(inputFilter.value.activities, -1);
@@ -731,7 +731,7 @@ function update(callback) {
           sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
           projects.value.length = 0;
           // проекты
-          authStore.authorizedRequest('get', `all_projects`).then((respP) => {
+          authStore.authorizedRequest('get', `projects`).then((respP) => {
             projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
             branches.value.length = 0;
             authStore.authorizedRequest('get', `branches`).then((respB) => {

@@ -1,5 +1,6 @@
 <template>
-  <div class="pp-cell-wrapper text-size" :class="props.inputClass" @click="toggleSelect" ref="wrapperRef">
+  <div :class="{ 'pp-cell-wrapper': true, ...props.inputClass, 'text-size': true }" @click="toggleSelect"
+    ref="wrapperRef">
     <div
       :class="[cell ? 'pp-select-trigger' : 'pp-select-trigger-regular', props.dark ? 'pp-dark' : 'pp-light', { 'pp-disabled': disable }]">
       <div v-if="props.label" style="font-size: xx-small;">{{ props.label }}</div>

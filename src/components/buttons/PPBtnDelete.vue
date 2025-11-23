@@ -1,5 +1,5 @@
 <template>
-  <PPBtn color="red" icon="delete" :click="props.click" />
+  <PPBtn color="red" icon="delete" @click="props.click" />
 </template>
 
 <script setup>

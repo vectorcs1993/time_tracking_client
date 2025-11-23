@@ -1,7 +1,7 @@
 import { defineRouter } from '#q-app/wrappers'
 import { createRouter, createMemoryHistory, createWebHistory, createWebHashHistory } from 'vue-router'
 import routes from './routes.js'
-import { useAuthStore } from 'src/stores/auth.js';
+import { useAuthStore } from 'src/stores/store.js';
 /*
  * If not building with SSR mode, you can
  * directly export the Router instantiation;
@@ -58,3 +58,4 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   })
   return Router
 })
+

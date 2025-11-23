@@ -1,5 +1,5 @@
 <template>
-  <PPBtn :dark="props.dark" icon="add" :click="props.click" />
+  <PPBtn :dark="props.dark" icon="add" @click="props.click" />
 </template>
 
 <script setup>

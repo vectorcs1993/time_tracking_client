@@ -12,7 +12,7 @@
             ${getTitlePage()}` }}</div>
           <q-space />
           <div v-if="authStore.getUser && authStore.getBranch">
-            <PPBtn :label="authStore.getUser.name" icon="person" :dark="dark">
+            <Button :label="authStore.getUser.name" icon="person" :dark="dark">
               <q-popup-proxy square :class="`${dark ? 'pp-dark' : 'pp-light'}`">
                 <div class="q-pa-md" style="width: 400px;">
                   <div class="row justify-between items-center">
@@ -49,14 +49,14 @@
                     <q-toggle v-model="dark" :color="dark ? 'orange' : 'green'" @update:model-value="updateTheme" />
                   </div>
                   <div align="right">
-                    <PPBtn label="Выход" :click="logout" :dark="dark" />
+                    <Button label="Выход" @click="logout" :dark="dark" />
                   </div>
                 </div>
               </q-popup-proxy>
-            </PPBtn>
+            </Button>
           </div>
           <div v-else>
-            <PPBtn :dark="dark" :click="() => router.push('/login')" :label="'Вход'"
+            <Button :dark="dark" @click="() => router.push('/login')" :label="'Вход'"
               style="padding-left: 10px; padding-right: 10px;" />
           </div>
           <div class="col-2" align="right">
@@ -93,14 +93,14 @@
       <!-- Диалог подтверждения -->
       <DialogConfirm ref="dc" :dark="dark">
         <template v-slot:buttons>
-          <PPBtn :dark="dark" label="Да" v-close-popup @click="actionConfirm" />
-          <PPBtn :dark="dark" label="Отмена" v-close-popup />
+          <Button :dark="dark" label="Да" v-close-popup @click="actionConfirm" />
+          <Button :dark="dark" label="Отмена" v-close-popup />
         </template>
       </DialogConfirm>
       <!-- Диалог информации -->
       <DialogConfirm ref="di" :dark="dark">
         <template v-slot:buttons>
-          <PPBtn :dark="dark" label="Ок" v-close-popup />
+          <Button :dark="dark" label="Ок" v-close-popup />
         </template>
       </DialogConfirm>
     </q-page-container>
@@ -118,10 +118,10 @@ import {
 } from 'vue';
 import DialogError from 'src/components/dialogs/error.vue';
 import DialogConfirm from 'src/components/dialogs/confirm.vue';
-import PPBtn from 'src/components/TTBtn.vue';
+import Button from 'src/components/TTBtn.vue';
 import TTTooltip from 'src/components/TTTooltip.vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from 'src/stores/auth.js';
+import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
 
 const root = document.documentElement;
@@ -175,7 +175,7 @@ const routes = [
   {
     icon: 'handyman',
     label: 'Настройка таблиц',
-    to: '/settings/tables',
+    to: '/configurations/tables',
   },
   {
     icon: 'construction',
@@ -239,7 +239,7 @@ const calculateRemainingHeight = () => {
     const headerHeight = calculateHeader();
     const availableHeight = window.innerHeight - headerHeight - 10; // 10px для отступов
     contentHeight.value = availableHeight;
-  }, 100);
+  }, 300);
 };
 function updateTextSize() {
   root.style.setProperty('--text-size', `${currentTextSize.value}px`);

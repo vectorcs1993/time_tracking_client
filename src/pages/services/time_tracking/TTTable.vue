@@ -1,5 +1,6 @@
 <template>
-  <div @keyup.esc="handleEsc" @click="selectRow" :style="`width: 100%; height: ${props.contentHeight}px;`">
+  <div @keyup.esc="handleEsc" @click="selectRow" :style="`width: 100%; height: ${props.contentHeight || 400}px;`"
+    @keydown="handleKeyDown" @keyup="handleKeyUp" tabindex="0">
     <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
       <!-- Текущая таблица -->
       <Tab v-model="tabConf" :tabs="configs.map(conf => ({ id: `conf${conf.id}`, name: conf.name }))" :dark="props.dark"
@@ -9,38 +10,38 @@
     <q-table v-if="curentConfig" ref="table" dense
       :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
       :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
-      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
-      selection="multiple" binary-state-sort :loading="load" :color="`${props.dark ? 'orange' : 'green'}`"
-      :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]"
-      no-data-label="Нет данных" grid-header :filter="inputFilter.search" v-model:selected="selected"
-      @row-click="selectRow" column-sort-order="da" style="height: 95%;">
+      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="load"
+      :hide-header="load" selection="multiple" binary-state-sort :loading="load"
+      :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="load" v-model:pagination="pagination"
+      separator="cell" :rows-per-page-options="[1]" no-data-label="Нет данных" grid-header :filter="inputFilter.search"
+      v-model:selected="selected" @row-click="selectRow" column-sort-order="da" style="height: 95%;">
       <template v-slot:loading>
         <PPLoading v-model="load" :dark="props.dark" />
       </template>
       <template v-slot:top>
-        <q-card-actions class="row q-gutter-sm full-width items-center">
-          <Btn label="" icon="sync" :click="requestRecords" :dark="props.dark" />
-          <Btn v-if="isAllowCreate()" :click="actionCreate" icon="add" :dark="props.dark" />
-          <Btn v-if="isAllowCreate() && selected.length === 1" icon="content_copy" :click="actionCopy"
-            :dark="props.dark" />
-          <Btn v-if="isAllowCreate() && isAllowDeleted()" icon="delete" :click="() => {
+        <q-card-actions class="row q-gutter-xs full-width items-center">
+          <Button label="Обновить" icon="sync" @click="requestRecords" :dark="props.dark" />
+          <Button label="Новая запись" v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
+          <Button label="Копировать" v-if="isAllowCreate() && selected.length === 1" icon="content_copy"
+            @click="actionCopy" :dark="props.dark" />
+          <Button label="Удалить" v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
             props.showConfirm('Удалить записи?', actionDelete);
           }" :dark="props.dark" />
           <!-- Фильтр подразделения -->
-          <TTSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
+          <Select v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
             :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
             style="width: 150px" />
           <!-- Пользовательский Фильтр сотрудники -->
-          <TTSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
+          <Select label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
             @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
           <!-- Фильтр тип работы -->
-          <TTSelect v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
+          <Select v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
             :options="inputFilter.type_works" @update:model-value="() => {
               updateFilterTypeWork();
               updateInputFilter();
             }" :dark="props.dark" style="width: 200px;" />
           <!-- Фильтр целевой объект/проект -->
-          <TTSelect v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
+          <Select v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
             label="Целевой объект" v-model="inputFilter.type_activity" :options="inputFilter.activities"
             @update:model-value="() => {
               updateFilterTypeWork();
@@ -48,15 +49,15 @@
             }" :dark="props.dark" style="width: 200px;" />
           <q-space />
           <!-- Фильтр период -->
-          <TTSelect label="Период" :options="type_period" v-model="inputFilter.period"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+          <Select label="Период" :options="type_period" v-model="inputFilter.period"
+            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 170px;" />
           <TTDatePicker label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 120px;" />
           <TTDatePicker label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 120px;" />
           <!-- Поиск -->
           <TTInputTextSingle label="Поиск" v-model="inputFilter.search" @update:model-value="updateInputFilter"
-            :dark="props.dark" />
+            :dark="props.dark" style="width: 200px;" />
         </q-card-actions>
       </template>
       <template v-slot:header-cell="props">
@@ -66,13 +67,19 @@
           </div>
         </q-th>
       </template>
+      <template v-slot:header-selection="props">
+        <TTCheckbox v-model="props.selected" :dark="props.dark" />
+      </template>
+      <template v-slot:body-selection="props">
+        <TTCheckbox v-model="props.selected" :dark="props.dark" />
+      </template>
       <template v-slot:pagination>
         <div class="row q-gutter-sm items-center">
           <div class="text-size">{{ returnSelectedInfo() }}</div>
           <!-- Фильтр сортировка -->
-          <TTSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
+          <Select label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
             @update:model-value="updateInputFilter" :dark="props.dark" />
-          <Btn v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" :click="exportReport"
+          <Button v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" @click="exportReport"
             :dark="props.dark" />
         </div>
       </template>
@@ -92,20 +99,20 @@
             v-else-if="props.col.type == 'date' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
             :cell="true" v-model="props.row[props.col.name]" :dark="props.dark"
             @update:model-value="(val) => save(props.col.name, val)" />
-          <PPCheckbox :disable="!isAllowEdit(props.row.id, props.col.name, false)"
+          <TTCheckbox :disable="!isAllowEdit(props.row.id, props.col.name, false)"
             v-else-if="props.col.type == 'checkbox'" v-model="props.row[props.col.name]" :dark="props.dark"
             @update:model-value="(val) => {
               selected[0] = props.row;
               save(props.col.name, val);
             }" />
-          <TTSelect
+          <Select
             v-else-if="props.col.type == 'selector' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
             :cell="true" v-model="props.row[props.col.name]" :options="props.col.options(props.row)"
             @update:model-value="(val) => {
               if (props.col.name === 'type_work') updateTypeWork(props.row);
               else save(props.col.name, val.id);
             }" style="width: 100%" :dark="props.dark">
-          </TTSelect>
+          </Select>
           <div v-else class="text-size cell-content">
             {{ props.value }}
           </div>
@@ -120,24 +127,24 @@ import {
   ref,
   defineProps,
   onMounted,
+  computed,
 } from 'vue';
-import { useAuthStore } from 'src/stores/auth.js';
 import moment from 'moment/moment';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
-import Btn from 'src/components/TTBtn.vue';
+import Button from 'src/components/TTBtn.vue';
 import Tab from 'src/components/TTTab.vue';
 import PPLoading from 'src/components/PPLoading.vue';
-import PPCheckbox from 'src/components/PPCheckbox.vue';
 import { getNameShort, isDateInRange, OPTION_ALL, TT_TYPE_FLAG } from './fun';
 import TTDatePicker from 'src/components/TTDatePicker.vue';
 import TTInputNumber from 'src/components/TTInputNumber.vue';
 import TTInputText from 'src/components/TTInputText.vue';
-import TTSelect from 'src/components/TTSelect.vue';
+import Select from 'src/components/TTSelect.vue';
 import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
+import TTCheckbox from 'src/components/TTCheckbox.vue';
 
 const load = ref(false);
-const authStore = useAuthStore();
+
 const datetimeFormat = 'YYYY-MM-DD';
 
 document.title = 'Таблицы';
@@ -147,6 +154,7 @@ const props = defineProps({
   showError: Function,
   contentHeight: Number,
   dark: Boolean,
+  authStore: Object,
 });
 const table = ref(null);
 const tab = ref('timeTrackingTable');
@@ -167,7 +175,6 @@ const type_product = [
     name: 'Полуфабрикат',
   },
 ];
-
 const type_sorts = [
   {
     id: 'DESC',
@@ -230,22 +237,45 @@ const users = ref([]);
 const selected = ref([]);
 const configs = ref([]);
 const curentConfig = ref();
-function selectRow(_event, row) {
-  if (row) {
-    selected.value.length = 0;
-    selected.value.push(row);
-  }
+
+const lastSelectedIndex = ref(-1);
+const isShiftPressed = ref(false);
+
+function handleKeyDown(e) {
+  if (e.key === 'Shift') isShiftPressed.value = true;
 }
 
+function handleKeyUp(e) {
+  if (e.key === 'Shift') isShiftPressed.value = false;
+}
+function selectRow(_event, row) {
+  if (row) {
+    if (isShiftPressed.value) {
+      // Shift + клик - добавляем/убираем запись
+      const index = selected.value.findIndex(s => s.id === row.id);
+      if (index === -1) {
+        selected.value.push(row);
+      } else {
+        selected.value.splice(index, 1);
+      }
+    } else {
+      // Обычный клик - выделяем только эту строку
+      selected.value.length = 0;
+      selected.value.push(row);
+    }
+
+    lastSelectedIndex.value = records.value.findIndex(r => r.id === row.id);
+  }
+}
 function isSelect(_id) {
   return selected.value.findIndex((s) => s.id === _id) !== -1 && selected.value.length === 1;
 }
 function isAllowDeleted(_id) {
   try {
     if (curentConfig.value.cols.length > 0) {
-      const del = selected.value.length > 0 && curentConfig.value.allow_delete.find((b) => b === authStore.getUser.branch);
+      const del = selected.value.length > 0 && curentConfig.value.allow_delete.find((b) => b === props.authStore.getUser.branch);
       if (_id !== undefined) {
-        return del && (curentConfig.value.deleteOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === authStore.getUser.email).id) : true);
+        return del && (curentConfig.value.deleteOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === props.authStore.getUser.email).id) : true);
       }
       return del;
     }
@@ -278,11 +308,11 @@ function getCustomStyle(row, col) {
 function isAllowEdit(_id, _col, needSelect) {
   try {
     if (curentConfig.value.cols.length > 0) {
-      const changeRow = (needSelect ? selected.value.length > 0 : true) && curentConfig.value.allow_edit.find((b) => b === authStore.getUser.branch) !== undefined;
+      const changeRow = (needSelect ? selected.value.length > 0 : true) && curentConfig.value.allow_edit.find((b) => b === props.authStore.getUser.branch) !== undefined;
       const findColFromConf = curentConfig.value.cols.find((c) => c.field === _col);
-      const changeCol = findColFromConf.allow_edit.find((ae) => ae === authStore.getUser.branch) !== undefined;
+      const changeCol = findColFromConf.allow_edit.find((ae) => ae === props.authStore.getUser.branch) !== undefined;
       if (_id !== undefined) {
-        return changeRow && changeCol && (curentConfig.value.changeOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === authStore.getUser.email).id) : true);
+        return changeRow && changeCol && (curentConfig.value.changeOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === props.authStore.getUser.email).id) : true);
       }
       return changeRow && changeCol;
     }
@@ -294,7 +324,7 @@ function isAllowEdit(_id, _col, needSelect) {
 }
 function isAllowView(val) {
   try {
-    return val.allow_views.find((b) => b === authStore.getUser.branch);
+    return val.allow_views.find((b) => b === props.authStore.getUser.branch);
   } catch (err) {
     console.log(err);
     return false;
@@ -305,7 +335,7 @@ function getTimeFormatForce(val, f) {
 }
 function isAllowCreate() {
   try {
-    return curentConfig.value?.allow_creates.find((b) => b === authStore.getUser.branch);
+    return curentConfig.value?.allow_creates.find((b) => b === props.authStore.getUser.branch);
   } catch {
     return false;
   }
@@ -567,6 +597,7 @@ function getItem(val) {
 }
 function requestRecords(callback) {
   load.value = true;
+  records.value.length = 0;
   const day = moment();
   const yesterday = day.clone().subtract(1, 'days');
   const yesterday7 = day.clone().subtract(7, 'days');
@@ -593,14 +624,14 @@ function requestRecords(callback) {
     inputFilter.value.dateFinish = 'null';
   }
 
-  authStore.authorizedRequest('get', `/records?order=${inputFilter.value.sorted.id
+  props.authStore.authorizedRequest('get', `/records?order=${inputFilter.value.sorted.id
     }&branch=${inputFilter.value.branch.id
     }&type_work=${inputFilter.value.type_work.id
     }&type_activity=${inputFilter.value.type_activity.id
     }&user=${inputFilter.value.user.id
     }&dS=${inputFilter.value.dateStart
     }&dF=${inputFilter.value.dateFinish}`).then((res) => { // &columns=${columns.value.map((c) => c.name).join(',')}
-      records.value.length = 0;
+
       records.value.push(...res.data.map((rec) => ({
         ...rec,
         branch: getObject(branches.value, rec.branch),
@@ -657,7 +688,7 @@ function update(callback) {
     load.value = true;
     // извлечение конфигурации таблицы
     configs.value.length = 0;
-    authStore.authorizedRequest('get', `all_configs`).then((respC) => {
+    props.authStore.authorizedRequest('get', `all_configs`).then((respC) => {
       respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
         conf.allow_views = JSON.parse(conf.allow_views);
         conf.allow_creates = JSON.parse(conf.allow_creates);
@@ -679,7 +710,7 @@ function update(callback) {
 
       inputFilter.value.on = curentConfig.value.filters;
       columns.value.length = 0;
-      authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
+      props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
         fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
         // формирование столбцов
         // if (curentConfig.value.cols.length > 0) {
@@ -728,21 +759,21 @@ function update(callback) {
 
         // целевой объект
         activities.value.length = 0;
-        authStore.authorizedRequest('get', `all_activities`).then((respA) => {
+        props.authStore.authorizedRequest('get', `activities`).then((respA) => {
           activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
           if (!inputFilter.value.type_activity) {
             inputFilter.value.type_activity = getObject(inputFilter.value.activities, -1);
           }
           // источники поступления задач
           sources.value.length = 0;
-          authStore.authorizedRequest('get', `sources`).then((respS) => {
+          props.authStore.authorizedRequest('get', `sources`).then((respS) => {
             sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
             projects.value.length = 0;
             // проекты
-            authStore.authorizedRequest('get', `all_projects`).then((respP) => {
+            props.authStore.authorizedRequest('get', `projects`).then((respP) => {
               projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
               branches.value.length = 0;
-              authStore.authorizedRequest('get', `branches`).then((respB) => {
+              props.authStore.authorizedRequest('get', `branches`).then((respB) => {
                 branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
                 inputFilter.value.branches.length = 0;
                 inputFilter.value.branches.push(OPTION_ALL);
@@ -766,7 +797,7 @@ function update(callback) {
                 }
 
                 users.value.length = 0;
-                authStore.authorizedRequest('get', `users`).then((respU) => {
+                props.authStore.authorizedRequest('get', `users`).then((respU) => {
                   users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
                   users.value.forEach((u) => {
                     u.name = getNameShort(u.name);
@@ -807,8 +838,6 @@ function update(callback) {
     records.value.length = 0;
   }
 }
-
-
 function actionCreate() {
   const date = moment().format(datetimeFormat);
   localStorage.setItem('filter_date_finish', date);
@@ -819,8 +848,8 @@ function actionCreate() {
 
   localStorage.setItem('filter_period', inputFilter.value.period.id);
   const createObject = {
-    branch: branches.value.find((b) => b.id === authStore.getUser.branch).id,
-    user: users.value.find((u) => u.email === authStore.getUser.email).id,
+    branch: branches.value.find((b) => b.id === props.authStore.getUser.branch).id,
+    user: users.value.find((u) => u.email === props.authStore.getUser.email).id,
     type_activity: activities.value[0].id, // при условии что type_work = 0 (по умолчанию в БД)
     type_source: sources.value.find((s) => s.id === 9).id, // НЕТ по умолчанию
     dateStartOrder: date,
@@ -834,7 +863,7 @@ function actionCreate() {
       createObject.type_activity = inputFilter.value.type_activity.id;
     }
   }
-  authStore.authorizedRequest('post', `records`, createObject).then((res) => {
+  props.authStore.authorizedRequest('post', `records`, createObject).then((res) => {
     requestRecords(() => {
       selected.value.length = 0;
       const s = records.value.find((r) => r.id === res.data);
@@ -847,18 +876,17 @@ function actionCreate() {
     props.showInfo('Ошибка создания записи');
   });
 }
-
 function actionCopy() {
   const date = moment().format(datetimeFormat);
   localStorage.setItem('filter_date_finish', date);
-  authStore.authorizedRequest('get', `/services/genprice/TimeTracking/${selected.value[0].id}`).then((res) => {
+  props.authStore.authorizedRequest('get', `/services/genprice/TimeTracking/${selected.value[0].id}`).then((res) => {
     const copyingObject = res.data.data;
     copyingObject.id = undefined;
     copyingObject.createdAt = undefined;
     copyingObject.updatedAt = undefined;
-    copyingObject.branch = branches.value.find((b) => b.id === authStore.getUser.branch).id;
-    copyingObject.user = users.value.find((u) => u.email === authStore.getUser.email).id;
-    authStore.authorizedRequest('post', `/services/genprice/TimeTracking/create`, copyingObject).then((resCopy) => {
+    copyingObject.branch = branches.value.find((b) => b.id === props.authStore.getUser.branch).id;
+    copyingObject.user = users.value.find((u) => u.email === props.authStore.getUser.email).id;
+    props.authStore.authorizedRequest('post', `/services/genprice/TimeTracking/create`, copyingObject).then((resCopy) => {
       if (resCopy.data.result === 'ok') {
         update(() => {
           selected.value.length = 0;
@@ -875,12 +903,11 @@ function actionCopy() {
     });
   });
 }
-
 function actionDelete() {
   const deletedQuery = [];
   selected.value.forEach((s) => {
     if (isAllowDeleted(s.id)) {
-      deletedQuery.push(authStore.authorizedRequest('delete', `records/${s.id}`));
+      deletedQuery.push(props.authStore.authorizedRequest('delete', `records/${s.id}`));
     }
   });
   Promise.all(deletedQuery).then(() => requestRecords()).catch((err) => {
@@ -892,12 +919,11 @@ function handleEsc() {
   selected.value.length = 0;
   update();
 }
-
 function save(col, value) {
   if (value !== undefined) {
     const updateRow = {};
     updateRow[col] = value;
-    authStore.authorizedRequest('post', `records/${selected.value[0].id}`, updateRow).catch((err) => {
+    props.authStore.authorizedRequest('post', `records/${selected.value[0].id}`, updateRow).catch((err) => {
       console.log(err);
       props.showError('Ошибка при работе с таблицей');
       update();
@@ -953,43 +979,35 @@ function returnSelectedInfo() {
   ${selected.value.length} из ${records.value.length}; Общее время: ${sum} мин (${(sum / 60).toFixed(1)} ч); Среднее время: ${average.toFixed(1)} мин (${(average / 60).toFixed(1)} ч);
   Максимальное время: ${max} мин (${(max / 60).toFixed(1)} ч);`;
 }
-// const filteredRows = computed(() => {
-//   if (!inputFilter.value.search) return records.value;
-//   return records.value.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(inputFilter.value.search.toLowerCase())));
-// });
-// function exportReport() {
-//   const data = {
-//     columns: columns.value,
-//     rows: filteredRows.value.map((r) => {
-//       const e = { ...r };
-//       columns.value.forEach((col) => {
-//         e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
-//       });
-//       return e;
-//     }),
-//   };
-//   axios({
-//     url: `/services/time_tracking_report_excel`,
-//     method: 'POST',
-//     responseType: 'blob',
-//     data,
-//   }).then((response) => {
-//     const fileURL = window.URL.createObjectURL(
-//       new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-//     );
-//     const fileLink = document.createElement('a');
-//     fileLink.href = fileURL;
-//     fileLink.setAttribute('download', `Отчёт_${curentConfig.value.name}.xlsx`);
-//     document.body.appendChild(fileLink);
-//     fileLink.click();
-//   }).catch((err) => {
-//     console.log(err);
-
-//     props.showInfo(err);
-//   });
-// }
-
+const filteredRows = computed(() => {
+  if (!inputFilter.value.search) return records.value;
+  return records.value.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(inputFilter.value.search.toLowerCase())));
+});
+function exportReport() {
+  const data = {
+    columns: columns.value,
+    rows: filteredRows.value.map((r) => {
+      const e = { ...r };
+      columns.value.forEach((col) => {
+        e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
+      });
+      return e;
+    }),
+  };
+  props.authStore.downloadExcel('export/table', data).catch((err) => {
+    console.log(err);
+  });
+}
 onMounted(() => {
   update();
 });
 </script>
+
+<style scoped>
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+</style>

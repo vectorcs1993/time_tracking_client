@@ -22,7 +22,7 @@
 </template>
 <script setup>
 import { ref, defineProps } from 'vue';
-import { useAuthStore } from 'src/stores/auth.js';
+import { useAuthStore } from 'src/stores/store.js';
 import PPBtn from 'src/components/TTBtn.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 
