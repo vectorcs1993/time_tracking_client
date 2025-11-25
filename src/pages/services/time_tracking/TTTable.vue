@@ -79,8 +79,7 @@
           <!-- Фильтр сортировка -->
           <Select label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
             @update:model-value="updateInputFilter" :dark="props.dark" />
-          <Button v-if="records.length > 0" icon="download" label="Экспорт в EXCEL" @click="exportReport"
-            :dark="props.dark" />
+          <Button v-if="records.length > 0" icon="download" label="Экспорт" @click="exportReport" :dark="props.dark" />
         </div>
       </template>
       <template v-slot:body-cell="props">
@@ -993,8 +992,9 @@ function exportReport() {
       });
       return e;
     }),
+    prefix: 'data',
   };
-  props.authStore.downloadExcel('export/table', data).catch((err) => {
+  props.authStore.downloadExcel('export/excel', data).catch((err) => {
     console.log(err);
   });
 }

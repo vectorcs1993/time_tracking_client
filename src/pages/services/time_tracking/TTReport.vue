@@ -16,24 +16,20 @@
       :hide-pagination="false" v-model:pagination="pagination" separator="cell" :filter="inputFilter.search"
       :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" style="height: 95%;">
       <template v-slot:top>
-        <q-card-actions class="row full-width items-center">
-          <div class="row items-center">
-            от
-            <q-input class="q-ma-sm text-size" type="date" :dark="props.dark" dense square
-              :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`" v-model="inputFilter.dateStart"
-              @update:model-value="updateInputFilter" />
-            до
-            <q-input class="q-ma-sm text-size" type="date" :dark="props.dark" dense square
-              :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
-              v-model="inputFilter.dateFinish" @update:model-value="updateInputFilter" />
-          </div>
-          <Button label="Сформировать" color="green" @click="createReport" :dark="props.dark" />
-          <Button v-if="rows.length > 0" label="Экспорт в EXCEL" @click="exportReport" :dark="props.dark" />
+        <q-card-actions class="row full-width q-gutter-sm items-center">
+          <Button label="Обновить" color="green" @click="createReport" :dark="props.dark" />
+          <TTDatePicker label="от" v-model="inputFilter.dateStart" :dark="props.dark"
+            @update:model-value="updateInputFilter" style="width: 100px;" />
+          <TTDatePicker label="до" v-model="inputFilter.dateFinish" :dark="props.dark"
+            @update:model-value="updateInputFilter" style="width: 100px;" />
           <q-space />
         </q-card-actions>
       </template>
       <template v-slot:pagination>
-        {{ returnSelectedInfo() }}
+        <div class="row q-gutter-sm items-center">
+          <div class="text-size">{{ returnSelectedInfo() }}</div>
+          <Button v-if="rows.length > 0" label="Экспорт" @click="exportReport" :dark="props.dark" />
+        </div>
       </template>
       <template v-slot:header-cell="props">
         <q-th :props="props">
@@ -50,8 +46,10 @@
       </template>
       <template v-slot:bottom-row="props">
         <q-tr v-if="total && (inputFilter.search === null || inputFilter.search === '')">
-          <q-td v-for="col in props.cols" :key="col" :style="total.style">
-            {{ total[col.name] }}
+          <q-td v-for="col in props.cols" :key="col" style="padding: 0px;">
+            <div class="text-size row fit justify-center" style="border-top: 1px solid var(--text-color-dark);">
+              {{ total[col.name] }}
+            </div>
           </q-td>
         </q-tr>
       </template>
@@ -68,6 +66,7 @@ import Button from 'src/components/TTBtn.vue';
 import moment from 'moment/moment';
 import Tab from 'src/components/TTTab.vue';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
+import TTDatePicker from 'src/components/TTDatePicker.vue';
 
 document.title = 'Отчёты';
 const props = defineProps({
@@ -80,7 +79,7 @@ const props = defineProps({
 const columns = ref([]);
 const rows = ref([]);
 const total = ref({});
-const description = ref('1212');
+const description = ref('');
 const users = ref([]);
 const branches = ref([]);
 const load = ref(false);
@@ -144,28 +143,16 @@ function createReport() {
     props.showInfo(err);
   });
 }
-// function exportReport() {
-//   const data = { columns: columns.value, rows: rows.value };
-//   axios({
-//     url: `${host()}/services/time_tracking_report_excel`,
-//     method: 'POST',
-//     responseType: 'blob',
-//     data,
-//   }).then((response) => {
-//     const fileURL = window.URL.createObjectURL(
-//       new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-//     );
-//     const fileLink = document.createElement('a');
-//     fileLink.href = fileURL;
-//     fileLink.setAttribute('download', `Отчёт_${curentConfig.value.name}.xlsx`);
-//     document.body.appendChild(fileLink);
-//     fileLink.click();
-//   }).catch((err) => {
-//     console.log(err);
-
-//     props.showInfo(err);
-//   });
-// }
+function exportReport() {
+  const data = {
+    columns: columns.value,
+    rows: [...rows.value, total.value],
+    prefix: 'report',
+  };
+  props.authStore.downloadExcel('export/excel', data).catch((err) => {
+    console.log(err);
+  });
+}
 function updateInputFilter(callback) {
   localStorage.setItem('report_time_traking', Number(tabConf.value.substr(4)));
   localStorage.setItem('report_filter_date_start', inputFilter.value.dateStart);
