@@ -51,8 +51,9 @@ export default defineConfig((ctx) => { // can be async too
       publicPath: '/planerman-cli/',
       vueRouterMode: 'history', // available values: 'hash', 'history'
       env: {
-        API_PROD: 'https://nsk-deb-pp.nevatom.ru/planerman',
-        API_DEV: 'https://nsk-deb-pp.nevatom.ru/planerman-dev',
+        API: ctx.dev
+          ? 'https://nsk-deb-pp.nevatom.ru/planerman-dev'
+          : 'https://nsk-deb-pp.nevatom.ru/planerman',
         LOCAL_STORAGE_NAME_TOKEN: 'planerman_token',
         LOCAL_STORAGE_NAME_TOKEN_REFRESH: 'planerman_token_refresh',
       },
