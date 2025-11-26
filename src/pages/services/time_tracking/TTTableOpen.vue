@@ -1,25 +1,24 @@
 <template>
-  <div @keyup.esc="handleEsc" @click="selectRow" :style="`width: 100%; height: ${props.contentHeight || 400}px;`"
+  <div :style="`width: 100%; height: ${props.contentHeight || 400}px;`" @keyup.esc="handleEsc" @click="selectRow"
     @keydown="handleKeyDown" @keyup="handleKeyUp" tabindex="0">
-    <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
-      <!-- Текущая таблица -->
-      <Tab v-model="tabConf" :tabs="configs.map(conf => ({ id: `conf${conf.id}`, name: conf.name }))" :dark="props.dark"
-        @update:model-value="updateTab" />
-    </div>
     <!-- Таблица -->
-    <q-table v-if="curentConfig" ref="table" dense
+    <q-table v-if="isAllowView(curentConfig)" ref="table" dense
       :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-      :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
-      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="load"
-      :hide-header="load" selection="multiple" binary-state-sort :loading="load"
-      :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="load" v-model:pagination="pagination"
+      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :dark="props.dark" square flat
+      :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells :hide-selected-banner="true"
+      :hide-header="false" selection="multiple" binary-state-sort :loading="load"
+      :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
       separator="cell" :rows-per-page-options="[1]" no-data-label="Нет данных" grid-header :filter="inputFilter.search"
-      v-model:selected="selected" @row-click="selectRow" column-sort-order="da" style="height: 95%;">
+      v-model:selected="selected" @row-click="selectRow" column-sort-order="da" style="height: 100%;">
       <template v-slot:loading>
         <PPLoading v-model="load" :dark="props.dark" />
       </template>
       <template v-slot:top>
         <q-card-actions class="row q-gutter-xs full-width items-center">
+          <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+          <div class="text-h6">
+            {{ curentConfig.name }}
+          </div>
           <Button label="Обновить" icon="sync" @click="requestRecords" :dark="props.dark" />
           <Button label="Новая запись" v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
           <Button label="Копировать" v-if="isAllowCreate() && selected.length === 1" icon="content_copy"
@@ -56,8 +55,7 @@
           <TTDatePicker label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
             @update:model-value="updateInputFilter" :dark="props.dark" style="width: 120px;" />
           <!-- Поиск -->
-          <TTInputTextSingle label="Поиск" v-model="inputFilter.search" @update:model-value="updateInputFilter"
-            :dark="props.dark" style="width: 200px;" />
+          <TTInputTextSingle label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
         </q-card-actions>
       </template>
       <template v-slot:header-cell="props">
@@ -118,7 +116,12 @@
         </q-td>
       </template>
     </q-table>
-    <q-card-section v-else>Просмотр запрещен</q-card-section>
+    <q-card-section v-else class="row q-gutter-xs full-width items-center">
+      <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+      <div class="text-h6">
+        Нет доступа
+      </div>
+    </q-card-section>
   </div>
 </template>
 <script setup>
@@ -126,27 +129,29 @@ import {
   ref,
   defineProps,
   onMounted,
-  computed,
 } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import moment from 'moment/moment';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import Button from 'src/components/TTBtn.vue';
-import Tab from 'src/components/TTTab.vue';
 import PPLoading from 'src/components/PPLoading.vue';
+import TTCheckbox from 'src/components/TTCheckbox.vue';
 import { getNameShort, isDateInRange, OPTION_ALL, TT_TYPE_FLAG } from './fun';
 import TTDatePicker from 'src/components/TTDatePicker.vue';
 import TTInputNumber from 'src/components/TTInputNumber.vue';
 import TTInputText from 'src/components/TTInputText.vue';
-import Select from 'src/components/TTSelect.vue';
 import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
-import TTCheckbox from 'src/components/TTCheckbox.vue';
+import Select from 'src/components/TTSelect.vue';
 
 const load = ref(false);
 
-const datetimeFormat = 'YYYY-MM-DD';
-
 document.title = 'Таблицы';
+
+const route = useRoute();
+const router = useRouter();
+const { id } = route.params;
+
 const props = defineProps({
   showInfo: Function,
   showConfirm: Function,
@@ -156,7 +161,6 @@ const props = defineProps({
   authStore: Object,
 });
 const table = ref(null);
-const tab = ref('timeTrackingTable');
 const tabConf = ref();
 const branches = ref([]);
 const projects = ref([]);
@@ -164,6 +168,7 @@ const sources = ref([]);
 const activities = ref([]);
 const records = ref([]);
 const fields = ref([]);
+const datetimeFormat = 'YYYY-MM-DD';
 const type_product = [
   {
     id: 0,
@@ -174,6 +179,7 @@ const type_product = [
     name: 'Полуфабрикат',
   },
 ];
+
 const type_sorts = [
   {
     id: 'DESC',
@@ -234,7 +240,6 @@ const inputFilter = ref({
 });
 const users = ref([]);
 const selected = ref([]);
-const configs = ref([]);
 const curentConfig = ref();
 
 const lastSelectedIndex = ref(-1);
@@ -629,7 +634,8 @@ function requestRecords(callback) {
     }&type_activity=${inputFilter.value.type_activity.id
     }&user=${inputFilter.value.user.id
     }&dS=${inputFilter.value.dateStart
-    }&dF=${inputFilter.value.dateFinish}`).then((res) => { // &columns=${columns.value.map((c) => c.name).join(',')}
+    }&dF=${inputFilter.value.dateFinish}
+    &columns=${columns.value.map((c) => c.name).join(',')}`).then((res) => { //
 
       records.value.push(...res.data.map((rec) => ({
         ...rec,
@@ -665,9 +671,6 @@ function requestRecords(callback) {
 }
 function update(callback) {
   try {
-    if (localStorage.getItem('time_tr_tabs')) {
-      tab.value = localStorage.getItem('time_tr_tabs');
-    }
     if (localStorage.getItem('filter_search')) {
       inputFilter.value.search = localStorage.getItem('filter_search');
     }
@@ -685,148 +688,106 @@ function update(callback) {
     }
     selected.value.length = 0;
     load.value = true;
-    // извлечение конфигурации таблицы
-    configs.value.length = 0;
-    props.authStore.authorizedRequest('get', `all_configs`).then((respC) => {
-      respC.data.sort((a, b) => (a.name < b.name ? -1 : 1)).forEach((conf) => {
-        conf.allow_views = JSON.parse(conf.allow_views);
-        conf.allow_creates = JSON.parse(conf.allow_creates);
-        conf.allow_delete = JSON.parse(conf.allow_delete);
-        conf.allow_edit = JSON.parse(conf.allow_edit);
-        conf.cols = JSON.parse(conf.cols);
-        if (isAllowView(conf)) {
-          configs.value.push(conf);
+    tabConf.value = `conf${curentConfig.value.id}`;
+    inputFilter.value.on = curentConfig.value.filters;
+    columns.value.length = 0;
+    props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
+      fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
+      // формирование столбцов
+      // if (curentConfig.value.cols.length > 0) {
+      curentConfig.value.cols.forEach((col) => {
+        const findCol = columnsPerm.find((c) => c.name === col.field);
+        if (col.name !== undefined && col.name !== '') {
+          findCol.label = col.name;
+        } else {
+          findCol.label = findCol.name;
         }
+        columns.value.push(findCol);
       });
 
-      curentConfig.value = getObject(configs.value, getItem('config_time_traking'));
-
-      if (!curentConfig.value) {
-        [curentConfig.value] = configs.value;
+      // установка фильтра тип работы
+      inputFilter.value.type_works.length = 0;
+      inputFilter.value.type_works.push(OPTION_ALL);
+      inputFilter.value.type_works.push(...type_works);
+      if (curentConfig.value.filters) {
+        inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
+      } else {
+        inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
+      }
+      if (!inputFilter.value.type_work) {
+        inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
       }
 
-      tabConf.value = `conf${curentConfig.value.id}`;
-
-      inputFilter.value.on = curentConfig.value.filters;
-      columns.value.length = 0;
-      props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
-        fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
-        // формирование столбцов
-        // if (curentConfig.value.cols.length > 0) {
-        curentConfig.value.cols.forEach((col) => {
-          const findCol = columnsPerm.find((c) => c.name === col.field);
-          if (col.name !== undefined && col.name !== '') {
-            findCol.label = col.name;
-          } else {
-            findCol.label = findCol.name;
-          }
-          columns.value.push(findCol);
-        });
-        // } else {
-
-        //   columnsPerm.forEach((col) => {
-        //     const v = curentConfig.value[`v${col.name}`];
-        //     const o = curentConfig.value[`o${col.name}`];
-        //     if (v) {
-        //       col.order = o || 0;
-        //       columns.value.push(col);
-        //     }
-        //   });
-        //   columns.value = columns.value.sort((a, b) => {
-        //     if (a.order < b.order) {
-        //       return -1; // a идет перед b
-        //     }
-        //     if (a.order > b.order) {
-        //       return 1; // b идет перед a
-        //     }
-        //     return 0; // a и b равны
-        //   });
-        // }
-
-        // установка фильтра тип работы
-        inputFilter.value.type_works.length = 0;
-        inputFilter.value.type_works.push(OPTION_ALL);
-        inputFilter.value.type_works.push(...type_works);
-        if (curentConfig.value.filters) {
-          inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
-        } else {
-          inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
+      // целевой объект
+      activities.value.length = 0;
+      props.authStore.authorizedRequest('get', `activities`).then((respA) => {
+        activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+        if (!inputFilter.value.type_activity) {
+          inputFilter.value.type_activity = getObject(inputFilter.value.activities, -1);
         }
-        if (!inputFilter.value.type_work) {
-          inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
-        }
+        // источники поступления задач
+        sources.value.length = 0;
+        props.authStore.authorizedRequest('get', `sources`).then((respS) => {
+          sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+          projects.value.length = 0;
+          // проекты
+          props.authStore.authorizedRequest('get', `projects`).then((respP) => {
+            projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+            branches.value.length = 0;
+            props.authStore.authorizedRequest('get', `branches`).then((respB) => {
+              branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+              inputFilter.value.branches.length = 0;
+              inputFilter.value.branches.push(OPTION_ALL);
+              inputFilter.value.branches.push(...branches.value);
+              if (curentConfig.value.filters) {
+                inputFilter.value.branch = getObject(inputFilter.value.branches, getItem('filter_branch'));
+              } else {
+                inputFilter.value.branch = getObject(inputFilter.value.branches, curentConfig.value.filter_branch);
+              }
+              if (!inputFilter.value.branch) {
+                inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
+              }
 
-        // целевой объект
-        activities.value.length = 0;
-        props.authStore.authorizedRequest('get', `activities`).then((respA) => {
-          activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-          if (!inputFilter.value.type_activity) {
-            inputFilter.value.type_activity = getObject(inputFilter.value.activities, -1);
-          }
-          // источники поступления задач
-          sources.value.length = 0;
-          props.authStore.authorizedRequest('get', `sources`).then((respS) => {
-            sources.value.push(...respS.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-            projects.value.length = 0;
-            // проекты
-            props.authStore.authorizedRequest('get', `projects`).then((respP) => {
-              projects.value.push(...respP.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-              branches.value.length = 0;
-              props.authStore.authorizedRequest('get', `branches`).then((respB) => {
-                branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-                inputFilter.value.branches.length = 0;
-                inputFilter.value.branches.push(OPTION_ALL);
-                inputFilter.value.branches.push(...branches.value);
-                if (curentConfig.value.filters) {
-                  inputFilter.value.branch = getObject(inputFilter.value.branches, getItem('filter_branch'));
-                } else {
-                  inputFilter.value.branch = getObject(inputFilter.value.branches, curentConfig.value.filter_branch);
-                }
-                if (!inputFilter.value.branch) {
-                  inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
-                }
+              inputFilter.value.activities.length = 0;
+              inputFilter.value.activities.push(OPTION_ALL);
+              inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
+              if (curentConfig.value.filters) {
+                inputFilter.value.type_activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
+              } else {
+                inputFilter.value.type_activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
+              }
 
-                inputFilter.value.activities.length = 0;
-                inputFilter.value.activities.push(OPTION_ALL);
-                inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
-                if (curentConfig.value.filters) {
-                  inputFilter.value.type_activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
-                } else {
-                  inputFilter.value.type_activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
-                }
-
-                users.value.length = 0;
-                props.authStore.authorizedRequest('get', `users`).then((respU) => {
-                  users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-                  users.value.forEach((u) => {
-                    u.name = getNameShort(u.name);
-                  });
-                  inputFilter.value.users.length = 0;
-                  inputFilter.value.users.push(OPTION_ALL);
-                  inputFilter.value.users.push(...users.value);
-                  // пользовательский фильтр Пользователь
-                  inputFilter.value.usersOnlyBranch.length = 0;
-                  inputFilter.value.usersOnlyBranch.push(OPTION_ALL);
-                  const optionsUsers = curentConfig.value.filter_branch !== -1 ? users.value.filter((u) => u.branch === curentConfig.value.filter_branch) : users.value;
-                  inputFilter.value.usersOnlyBranch.push(...optionsUsers);
-                  inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, getItem('filter_user'));
-                  if (!inputFilter.value.user) {
-                    inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, -1);
-                  }
-                  inputFilter.value.usersOnlyBranchNoAll.length = 0;
-                  inputFilter.value.usersOnlyBranchNoAll.push(...optionsUsers);
-
-                  inputFilter.value.sorted = getObject(type_sorts, localStorage.getItem('filter_sort'));
-                  if (!inputFilter.value.sorted) {
-                    [inputFilter.value.sorted] = type_sorts;
-                  }
-                  requestRecords(callback);
-                }).catch((err) => {
-                  console.log(err);
+              users.value.length = 0;
+              props.authStore.authorizedRequest('get', `users`).then((respU) => {
+                users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
+                users.value.forEach((u) => {
+                  u.name = getNameShort(u.name);
                 });
+                inputFilter.value.users.length = 0;
+                inputFilter.value.users.push(OPTION_ALL);
+                inputFilter.value.users.push(...users.value);
+                // пользовательский фильтр Пользователь
+                inputFilter.value.usersOnlyBranch.length = 0;
+                inputFilter.value.usersOnlyBranch.push(OPTION_ALL);
+                const optionsUsers = curentConfig.value.filter_branch !== -1 ? users.value.filter((u) => u.branch === curentConfig.value.filter_branch) : users.value;
+                inputFilter.value.usersOnlyBranch.push(...optionsUsers);
+                inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, getItem('filter_user'));
+                if (!inputFilter.value.user) {
+                  inputFilter.value.user = getObject(inputFilter.value.usersOnlyBranch, -1);
+                }
+                inputFilter.value.usersOnlyBranchNoAll.length = 0;
+                inputFilter.value.usersOnlyBranchNoAll.push(...optionsUsers);
+
+                inputFilter.value.sorted = getObject(type_sorts, localStorage.getItem('filter_sort'));
+                if (!inputFilter.value.sorted) {
+                  [inputFilter.value.sorted] = type_sorts;
+                }
+                requestRecords(callback);
               }).catch((err) => {
                 console.log(err);
               });
+            }).catch((err) => {
+              console.log(err);
             });
           });
         });
@@ -914,10 +875,6 @@ function actionDelete() {
     props.showInfo('Ошибка удаления записи');
   });
 }
-function handleEsc() {
-  selected.value.length = 0;
-  update();
-}
 function save(col, value) {
   if (value !== undefined) {
     const updateRow = {};
@@ -950,11 +907,6 @@ function saveForLocalStorage() {
   localStorage.setItem('filter_period', inputFilter.value.period.id);
   localStorage.setItem('filter_search', inputFilter.value.search);
 }
-function updateTab() {
-  selected.value.length = 0;
-  saveForLocalStorage();
-  update();
-}
 function updateInputFilter() {
   selected.value.length = 0;
   saveForLocalStorage();
@@ -974,21 +926,20 @@ function returnSelectedInfo() {
   const sum = selected.value.reduce((acc, current) => acc + Number(current.total_time), 0);
   const average = sum / selected.value.length;
   const max = Math.max.apply(null, selected.value.map((obj) => Number(obj.total_time)));
-  return selected.value.length === 0 ? `Всего записей: ${records.value.length}` : `Записей выбрано:
-  ${selected.value.length} из ${records.value.length}; Общее время: ${sum} мин (${(sum / 60).toFixed(1)} ч); Среднее время: ${average.toFixed(1)} мин (${(average / 60).toFixed(1)} ч);
+  return selected.value.length === 0 ? `Всего записей: ${table.value.filteredSortedRows.length}` : `Записей выбрано:
+  ${selected.value.length} из ${table.value.filteredSortedRows.length}; Общее время: ${sum} мин (${(sum / 60).toFixed(1)} ч); Среднее время: ${average.toFixed(1)} мин (${(average / 60).toFixed(1)} ч);
   Максимальное время: ${max} мин (${(max / 60).toFixed(1)} ч);`;
 }
-const filteredRows = computed(() => {
-  if (!inputFilter.value.search) return records.value;
-  return records.value.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(inputFilter.value.search.toLowerCase())));
-});
 function exportReport() {
   const data = {
     columns: columns.value,
-    rows: filteredRows.value.map((r) => {
+    rows: table.value.filteredSortedRows.map((r) => {
       const e = { ...r };
       columns.value.forEach((col) => {
         e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
+        if (col.type === 'checkbox') {
+          e[col.name] = e[col.name] === true ? '✓' : '';
+        }
       });
       return e;
     }),
@@ -999,15 +950,19 @@ function exportReport() {
   });
 }
 onMounted(() => {
-  update();
+  props.authStore.authorizedRequest('get', `configs/${id}`).then((respConf) => {
+    const conf = respConf.data[0];
+    conf.allow_views = JSON.parse(conf.allow_views);
+    conf.allow_creates = JSON.parse(conf.allow_creates);
+    conf.allow_delete = JSON.parse(conf.allow_delete);
+    conf.allow_edit = JSON.parse(conf.allow_edit);
+    conf.cols = JSON.parse(conf.cols);
+    console.log(conf);
+
+    curentConfig.value = conf;
+    update();
+  }).catch(() => {
+    props.showError('Ошибка загрузки конфигурации');
+  })
 });
 </script>
-
-<style scoped>
-* {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-</style>

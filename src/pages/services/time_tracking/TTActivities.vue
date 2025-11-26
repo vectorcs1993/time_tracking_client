@@ -1,73 +1,74 @@
 <template>
-  <q-table :class="`${props.dark ? 'pp-dark' : 'pp-light'} fix-table cursor-pointer`" square :dark="props.dark" dense
-    flat :rows="rows" :columns="[
-      {
-        name: 'name',
-        required: true,
-        label: 'Наименование',
-        align: 'left',
-        field: (row) => row.name,
-        sortable: true,
-        style: 'min-width: 500px',
-        edit: false,
-      },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
-    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
-    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" :loading="load"
-    :style="`min-height: ${props.contentHeight || 400}px;`">
-    <template v-slot:top>
-      <q-card-actions class="fit">
-        <Button label="Новая активность" @click="() => {
-          dialogAdd = true;
-          modelInput.name = '';
-        }" :dark="props.dark" />
-        <Button label="Изменить" v-if="selected.length > 0" icon="edit" @click="() => {
-          dialogUpdate = true;
-          modelInput.name = selected[0].name;
-        }" :dark="props.dark" />
-        <Button disable label="Удалить" icon="delete" v-if="selected.length > 0" @click="remove" :dark="props.dark" />
-        <q-space />
-        <TTInputTextSingle label="Поиск" v-model="filter" :dark="props.dark" />
-      </q-card-actions>
-    </template>
-    <template v-slot:pagination>
-      <div>
-        {{ selected.length === 0 ? `Всего объектов: ${rows.length}` : `Объектов выбрано:
-        ${selected.length} из ${rows.length}` }}
-      </div>
-    </template>
-    <template v-slot:header-cell="props">
-      <q-th :props="props">
-        <div class="text-size">{{ props.col.label }}</div>
-      </q-th>
-    </template>
-    <template v-slot:body-cell="props">
-      <q-td :props="props">
-        <div class="text-size">
-          {{ props.value }}
+  <q-page class="full-height">
+    <q-table :class="`${props.dark ? 'pp-dark' : 'pp-light'} fix-table cursor-pointer`" square :dark="props.dark" dense
+      flat :rows="rows" :columns="[
+        {
+          name: 'name',
+          required: true,
+          label: 'Наименование',
+          align: 'left',
+          field: (row) => row.name,
+          sortable: true,
+          style: 'min-width: 500px',
+          edit: false,
+        },
+      ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
+      :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
+      separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
+      v-model:selected="selected" @row-click="selectRow" :loading="load">
+      <template v-slot:top>
+        <q-card-actions class="fit">
+          <Button label="Новая активность" @click="() => {
+            dialogAdd = true;
+            modelInput.name = '';
+          }" :dark="props.dark" />
+          <Button label="Изменить" v-if="selected.length > 0" icon="edit" @click="() => {
+            dialogUpdate = true;
+            modelInput.name = selected[0].name;
+          }" :dark="props.dark" />
+          <Button disable label="Удалить" icon="delete" v-if="selected.length > 0" @click="remove" :dark="props.dark" />
+          <q-space />
+          <TTInputTextSingle label="Поиск" v-model="filter" :dark="props.dark" />
+        </q-card-actions>
+      </template>
+      <template v-slot:pagination>
+        <div>
+          {{ selected.length === 0 ? `Всего объектов: ${rows.length}` : `Объектов выбрано:
+          ${selected.length} из ${rows.length}` }}
         </div>
-      </q-td>
-    </template>
-    <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" />
-    </template>
-    <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" />
-    </template>
-  </q-table>
-  <PPDialog label="Новая активность" v-model="dialogAdd" :dark="props.dark" styleContent="width: 400px;">
-    <q-card-section>
-      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
-      <Button label="Создать" :disable="!modelInput.name" :dark="props.dark" @click="add" />
-    </q-card-section>
-  </PPDialog>
-  <PPDialog label="Изменение активности" v-model="dialogUpdate" :dark="props.dark" styleContent="width: 400px;">
-    <q-card-section>
-      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
-      <Button label="Изменить" :disable="!modelInput.name" :dark="props.dark" @click="change" />
-    </q-card-section>
-  </PPDialog>
+      </template>
+      <template v-slot:header-cell="props">
+        <q-th :props="props">
+          <div class="text-size">{{ props.col.label }}</div>
+        </q-th>
+      </template>
+      <template v-slot:body-cell="props">
+        <q-td :props="props">
+          <div class="text-size">
+            {{ props.value }}
+          </div>
+        </q-td>
+      </template>
+      <template v-slot:header-selection="props">
+        <TTCheckbox v-model="props.selected" />
+      </template>
+      <template v-slot:body-selection="props">
+        <TTCheckbox v-model="props.selected" />
+      </template>
+    </q-table>
+    <PPDialog label="Новая активность" v-model="dialogAdd" :dark="props.dark" styleContent="width: 400px;">
+      <q-card-section>
+        <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+        <Button label="Создать" :disable="!modelInput.name" :dark="props.dark" @click="add" />
+      </q-card-section>
+    </PPDialog>
+    <PPDialog label="Изменение активности" v-model="dialogUpdate" :dark="props.dark" styleContent="width: 400px;">
+      <q-card-section>
+        <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+        <Button label="Изменить" :disable="!modelInput.name" :dark="props.dark" @click="change" />
+      </q-card-section>
+    </PPDialog>
+  </q-page>
 </template>
 <script setup>
 import Button from 'src/components/TTBtn.vue';
@@ -85,7 +86,6 @@ const props = defineProps({
   showError: Function,
   showConfirm: Function,
   showInfo: Function,
-  contentHeight: Number,
   dark: Boolean,
   authStore: Object,
 });

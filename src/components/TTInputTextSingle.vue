@@ -2,8 +2,9 @@
   <div :class="{ 'pp-cell-wrapper': true, ...props.inputClass, 'text-size': true }">
     <div :class="[cell ? 'pp-text-trigger' : 'pp-text-trigger-regular', props.dark ? 'pp-dark' : 'pp-light']">
       <div v-if="props.label" style="font-size: xx-small;">{{ props.label }}</div>
-      <input ref="inputRef" type="text" :value="model" @input="handleInput" @focus="handleFocus" @blur="handleBlur"
-        @keydown="handleKeydown" class="text-size pp-text-input" :class="[props.dark ? 'pp-dark' : 'pp-light']" />
+      <input ref="inputRef" :type="props.type" :value="model" @input="handleInput" @focus="handleFocus"
+        @blur="handleBlur" @keydown="handleKeydown" class="text-size pp-text-input"
+        :class="[props.dark ? 'pp-dark' : 'pp-light']" />
     </div>
   </div>
 </template>
@@ -19,6 +20,10 @@ const props = defineProps({
   cell: {
     type: Boolean,
     default: false,
+  },
+  type: {
+    type: String,
+    default: 'text',
   }
 });
 
@@ -27,17 +32,32 @@ const inputRef = ref(null);
 const isFocused = ref(false);
 
 const handleInput = (event) => {
-  // Для текста разрешаем все символы, можно добавить фильтрацию если нужно
   model.value = event.target.value;
 };
 
 const handleFocus = () => {
   isFocused.value = true;
-  // Ставим курсор в конец текста
+
+  // Безопасное установление курсора в конец текста
   setTimeout(() => {
     if (inputRef.value) {
-      const length = inputRef.value.value.length;
-      inputRef.value.setSelectionRange(length, length);
+      const input = inputRef.value;
+      const length = input.value.length;
+
+      try {
+        // Проверяем, поддерживает ли данный тип поля выделение
+        if (input.type === 'email' && !input.validity.valid) {
+          // Для невалидных email полей просто фокусируемся
+          input.focus();
+        } else {
+          // Для других типов или валидных email полей устанавливаем курсор
+          input.setSelectionRange(length, length);
+        }
+      } catch (error) {
+        // Fallback: просто фокусируемся если выделение не поддерживается
+        console.warn('Selection not supported for this input type:', error.message);
+        input.focus();
+      }
     }
   });
 };
@@ -45,7 +65,6 @@ const handleFocus = () => {
 const handleBlur = () => {
   isFocused.value = false;
 
-  // Валидация при потере фокуса (опционально)
   let value = model.value;
 
   if (value === '') {
@@ -58,47 +77,36 @@ const handleBlur = () => {
 };
 
 const handleKeydown = (event) => {
-  // Разрешаем: Backspace, Delete, Tab, Escape, Enter, стрелки
   const allowedKeys = [
     'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
     'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
     'Home', 'End'
   ];
 
-  // Разрешаем Ctrl/Command + A, C, V, X
   if (event.ctrlKey || event.metaKey) {
     if (['a', 'c', 'v', 'x', 'A', 'C', 'V', 'X'].includes(event.key)) {
       return;
     }
   }
 
-  // Для текста разрешаем все символы кроме управляющих
   if (!allowedKeys.includes(event.key) && event.key.length === 1) {
     // Можно добавить дополнительные ограничения если нужно
-    // Например: разрешить только кириллицу/латиницу/цифры
-    // const allowedChars = /[а-яА-Яa-zA-Z0-9\s]/;
-    // if (!allowedChars.test(event.key)) {
-    //   event.preventDefault();
-    // }
   }
 
-  // Обработка Enter
   if (event.key === 'Enter') {
     event.preventDefault();
     handleBlur(event);
     inputRef.value?.blur();
   }
 
-  // Обработка Escape
   if (event.key === 'Escape') {
     event.preventDefault();
     inputRef.value?.blur();
   }
 };
 
-// Автофокус при монтировании (если нужно)
 onMounted(() => {
-  // Если нужно автоматически фокусироваться при создании
   // inputRef.value?.focus();
 });
+
 </script>

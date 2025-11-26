@@ -2,14 +2,10 @@
   <q-layout view="hHh Lpr lff" :class="`${dark ? 'pp-dark' : 'pp-light'}`">
     <q-header :dark="dark" :class="`${dark ? 'bg-header-dark' : 'bg-header-light'}`">
       <q-toolbar id="header">
-        <q-btn flat v-if="leftDrawerOpen" dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-btn flat dense square icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
         <q-card-section class="q-pa-sm row items-center full-width">
-          <!-- <img class="q-mt-xs" src="./images/logo.svg"> -->
-          <!-- <img class="q-mt-xs" src="./images/logo_standby_mono.svg"
-            style="padding: 0px; width: 40px; height: 30px; position: absolute; left: 160px; top: 12px; z-index: 99;"> -->
-          <!-- <img class="q-mt-xs" src="./images/tt.svg"> -->
-          <div class="text-h6" style="display: block; cursor: pointer;" @click="() => router.push('/')">{{ `Планерман
-            ${getTitlePage()}` }}</div>
+          <div class="text-h6" style="display: block; cursor: pointer;" @click="() => router.push('/')">
+            {{ `Планерман ${getTitlePage()}` }}</div>
           <q-space />
           <div v-if="authStore.getUser && authStore.getBranch">
             <Button :label="authStore.getUser.name" icon="person" :dark="dark">
@@ -79,15 +75,13 @@
             <q-item-section>
               {{ menuItem.label }}
             </q-item-section>
-            <TTTooltip v-if="miniState === true" :dark="dark"> {{ menuItem.label }}</TTTooltip>
           </q-item>
         </template>
       </q-list>
     </q-drawer>
     <q-page-container @click="() => { showMessage = true; miniState = true; }">
       <router-view :authStore="authStore" :showError="showError" :showInfo="showInfo" :showConfirm="showConfirm"
-        :contentHeight="contentHeight" :dark="dark" :debug="debug" :branch="branch" :load="load" :login="login"
-        :logout="logout" />
+        :dark="dark" :debug="debug" :branch="branch" :load="load" :login="login" :logout="logout" contentHeight="840" />
       <!-- Диалог ошибки -->
       <DialogError ref="de" :dark="dark" />
       <!-- Диалог подтверждения -->
@@ -116,10 +110,10 @@ import {
   onBeforeUnmount,
   watch,
 } from 'vue';
+// import { useQuasar } from 'quasar';
 import DialogError from 'src/components/dialogs/error.vue';
 import DialogConfirm from 'src/components/dialogs/confirm.vue';
 import Button from 'src/components/TTBtn.vue';
-import TTTooltip from 'src/components/TTTooltip.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
@@ -173,19 +167,14 @@ const routes = [
     to: '/sources',
   },
   {
-    icon: 'handyman',
-    label: 'Настройка таблиц',
-    to: '/configurations/tables',
-  },
-  {
     icon: 'construction',
     label: 'Настройка отчётов',
     to: '/settings/reports',
   },
 ];
-
+// const $q = useQuasar();
 const menuList = computed(() => authStore.isAuthenticated ? routes : []);
-const leftDrawerOpen = computed(() => authStore.isAuthenticated);
+const leftDrawerOpen = ref(true);
 const miniState = ref(true);
 const version = ref(packageInfo.version);
 
@@ -193,11 +182,6 @@ const debug = ref(localStorage.getItem('debug') ? localStorage.getItem('debug') 
 
 const branch = ref();
 const showMessage = ref(true);
-
-function update() {
-  leftDrawerOpen.value = true;
-  showMessage.value = true;
-}
 const actionConfirm = ref(() => {
 });
 function showError(text) {
@@ -217,30 +201,21 @@ function showConfirm(text, action) {
   dc.value.show();
 }
 function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
-  miniState.value = !miniState.value;
-  update();
+  // Если это мобильное устройство, переключаем полностью открытие/закрытие
+  if (window.innerWidth <= 500) {
+    leftDrawerOpen.value = !leftDrawerOpen.value;
+    miniState.value = false; // В мобильном режиме не используем mini-режим
+  } else {
+    // На десктопе переключаем только mini-режим
+    miniState.value = !miniState.value;
+  }
 }
-const calculateHeader = () => {
-  const header = document.getElementById('header');
-  return (header ? header.offsetHeight : 0) + 10;
-};
 const zoomLevel = ref(100);
-const contentHeight = ref(0);
-let resizeTimeout = null;
 
 watch(zoomLevel, (newVal) => {
   console.log('Масштаб изменен:', newVal + '%')
 })
 
-const calculateRemainingHeight = () => {
-  if (resizeTimeout) clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(() => {
-    const headerHeight = calculateHeader();
-    const availableHeight = window.innerHeight - headerHeight - 10; // 10px для отступов
-    contentHeight.value = availableHeight;
-  }, 300);
-};
 function updateTextSize() {
   root.style.setProperty('--text-size', `${currentTextSize.value}px`);
   localStorage.setItem('text-size', currentTextSize.value);
@@ -265,7 +240,6 @@ function login(data) {
 }
 function logout() {
   authStore.logout().finally(() => {
-    leftDrawerOpen.value = false;
     router.push('/login');
   });
 }
@@ -276,8 +250,6 @@ function getTitlePage() {
 }
 onMounted(async () => {
   load(false);
-  window.addEventListener('resize', calculateRemainingHeight);
-  calculateRemainingHeight();
   // Инициализируем store перед проверкой аутентификации
   authStore.initializeStore();
 
@@ -288,8 +260,6 @@ onMounted(async () => {
   }
 });
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', calculateRemainingHeight);
-  if (resizeTimeout) clearTimeout(resizeTimeout);
   if (de.value) de.value.hide();
   if (di.value) di.value.hide();
   if (dc.value) dc.value.hide();

@@ -26,8 +26,8 @@
         </div>
       </div>
       <div v-if="props.options.length > 0" class="pp-multiselect-actions">
-        <TTBtn @click="selectAll" label="Выбрать все" />
-        <TTBtn @click="clearAll" label="Очистить" />
+        <TTBtn @click="selectAll" label="Выбрать все" :dark="props.dark" />
+        <TTBtn @click="clearAll" label="Очистить" :dark="props.dark" />
       </div>
       <div v-else class="pp-no-options">
         Нет доступных опций

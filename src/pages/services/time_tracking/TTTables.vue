@@ -4,15 +4,16 @@
     :hide-selected-banner="true" selection="single" :loading="load" color="orange" binary-state-sort
     :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header
     no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
-    @row-dblclick="router.push(`/configurations/table/${selected[0].id}`)"
-    :style="`height: ${props.contentHeight || 400}px;`">
+    @row-dblclick="router.push(`/table/${selected[0].id}`)" :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:top>
-      <q-card-actions class="fit">
+      <q-card-actions class="row fit q-gutter-sm">
         <Button :dark="props.dark" icon="add" label="Новая таблица" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
           selected.length = 0;
         }" />
+        <Button :dark="props.dark" v-show="selected.length > 0" label="Открыть" icon="open_in_new"
+          @click="() => router.push(`/table/${selected[0].id}`)" />
         <Button :dark="props.dark" v-show="selected.length > 0" label="Изменить" icon="edit"
           @click="() => router.push(`/configurations/table/${selected[0].id}`)" />
         <Button label="Удалить" :dark="props.dark" v-show="selected.length > 0" icon="delete" @click="remove" />

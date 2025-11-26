@@ -2,6 +2,7 @@
   <div :class="{ 'pp-cell-wrapper': cell, ...props.inputClass, 'text-size': true }">
     <button :class="['pp-button', { 'pp-disabled': disable, 'pp-button-dark': dark }]" @click="handleClick"
       :disabled="disable">
+      <q-icon v-if="icon" :name="icon" size="sm" />
       <span v-if="label">{{ label }}</span>
       <slot></slot>
     </button>
@@ -13,6 +14,7 @@ const props = defineProps({
   disable: Boolean,
   dark: Boolean,
   label: String,
+  icon: String,
   cell: {
     type: Boolean,
     default: false,

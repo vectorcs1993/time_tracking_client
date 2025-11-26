@@ -1,12 +1,13 @@
 <template>
   <q-splitter v-if="config" v-model="splitter" :dark="props.dark" :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:before>
-      <div class="q-pa-sm">
-        <div class="row items-center">
-          <TTInputTextSingle label="Наименование" v-model="config.name" style="width: 100%;" :dark="props.dark" />
-          <Button v-if="change" @click="save" label="Сохранить" :dark="props.dark" />
-          <Button v-if="change" @click="update" label="Отменить" :dark="props.dark" />
-        </div>
+      <div class="row q-pa-sm q-gutter-sm items-center">
+        <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+        <Button v-if="change" @click="save" label="Сохранить" :dark="props.dark" />
+        <Button v-if="change" @click="update" label="Отменить" :dark="props.dark" />
+      </div>
+      <div class="q-pa-sm q-gutter-sm">
+        <TTInputTextSingle label="Наименование" v-model="config.name" style="width: 100%;" :dark="props.dark" />
         <div v-if="!change" class="col">
           <div>
             Создана {{ config.createdAt }}
@@ -17,8 +18,7 @@
         </div>
         <div class="q-gutter-xs">
           <TTCheckbox v-model="config.filters" label="Показывать фильтры" :dark="props.dark" />
-          <TTCheckbox :disable="config.filters" v-model="config.deleteOnlySome" label="Удалять только свои"
-            :dark="props.dark" />
+          <TTCheckbox v-model="config.deleteOnlySome" label="Удалять только свои" :dark="props.dark" />
           <TTCheckbox v-model="config.changeOnlySome" label="Изменять только свои" :dark="props.dark" />
         </div>
         <TTSelect label="Фильтр подразделение" v-model="config.filter_branch" :options="branches_mod" :dark="props.dark"
@@ -44,8 +44,8 @@
     </template>
     <template v-slot:after>
       <div class="q-pa-sm">
-        <q-card-actions>
-          <Button label="Новый столбец" @click="() => {
+        <q-card-actions class="q-gutter-sm">
+          <Button icon="add" label="Новый столбец" @click="() => {
             colTableSelected.length = 0;
             addColumnForColTable(config.cols);
           }" :dark="props.dark" />
@@ -156,7 +156,7 @@ import {
   watch,
   nextTick,
 } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import Button from 'src/components/TTBtn.vue';
 import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
 import TTSelect from 'src/components/TTSelect.vue';
@@ -165,6 +165,7 @@ import TTCheckbox from 'src/components/TTCheckbox.vue';
 import { getNewId, OPTION_ALL, TT_TYPE_FLAG } from './fun';
 
 const route = useRoute();
+const router = useRouter();
 const { id } = route.params;
 
 const props = defineProps({

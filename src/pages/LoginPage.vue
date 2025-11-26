@@ -6,11 +6,13 @@
         <div class="text-h6 row justify-center" style="line-height: 10px;"> Авторизация</div>
       </q-card-section>
       <q-card-section>
-        <form class="q-pa-md q-gutter-sm" @submit.prevent="props.login({ email, password })">
-          <PPInputSingle :dark="props.dark" :type="'email'" :placeholder="'Логин (адрес почты)'" v-model="email" />
-          <PPInputSingle :dark="props.dark" :type="'password'" :placeholder="'Пароль'" v-model="password" />
+        <form ref="loginForm" class="q-pa-md q-gutter-sm" @submit.prevent="handleSubmit">
+          <TTInputSingle label="Логин (адрес почты)" :dark="props.dark" type="email" v-model="email"
+            :submit-on-enter="false" :blur-on-enter="false" @enter="handleSubmit" />
+          <TTInputSingle label="Пароль" :dark="props.dark" type="password" v-model="password" :submit-on-enter="true"
+            :blur-on-enter="false" @enter="handleSubmit" @submit="handleSubmit" />
           <div class="row justify-end" style="margin-top: 15px; margin-bottom: -15px; margin-right: 8px;">
-            <PPBtn label="Войти" type="submit" :dark="props.dark" style="padding-left: 10px; padding-right: 10px;" />
+            <Button label="Войти" type="submit" :dark="props.dark" style="padding-left: 10px; padding-right: 10px;" />
           </div>
         </form>
       </q-card-section>
@@ -20,13 +22,15 @@
     </q-card-section>
   </q-page>
 </template>
+
 <script setup>
-import { ref, defineProps } from 'vue';
+import { ref, defineProps, onMounted, onUnmounted, } from 'vue';
 import { useAuthStore } from 'src/stores/store.js';
-import PPBtn from 'src/components/TTBtn.vue';
-import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
+import Button from 'src/components/TTBtn.vue';
+import TTInputSingle from 'src/components/TTInputTextSingle.vue';
 
 const authStore = useAuthStore();
+const loginForm = ref(null);
 
 const props = defineProps({
   dark: Boolean,
@@ -38,4 +42,25 @@ document.title = 'Вход';
 const email = ref('');
 const password = ref('');
 
+const handleSubmit = () => {
+  if (props.login) {
+    props.login({ email: email.value, password: password.value });
+  }
+};
+
+const handleGlobalKeydown = (event) => {
+  if (event.key === 'Enter' && !authStore.isAuthenticated && email.value && password.value) {
+    event.preventDefault();
+    handleSubmit();
+  }
+};
+
+// Добавляем глобальный обработчик
+onMounted(() => {
+  document.addEventListener('keydown', handleGlobalKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown);
+});
 </script>
