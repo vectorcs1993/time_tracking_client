@@ -84,7 +84,7 @@
         <q-td :props="props" class="no-pa-ma"
           :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
           <div class="text-size q-pa-sm row fit justify-center items-center editable-cell"
-            style="white-space: pre-wrap; min-height: 48px;" @dblclick="openEditPopup(props)">
+            style="white-space: pre-wrap; min-height: 48px;" @click="openEditPopup(props)">
             <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
               <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
                 :dark="props.dark" />
