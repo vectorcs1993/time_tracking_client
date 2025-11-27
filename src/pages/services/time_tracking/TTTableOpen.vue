@@ -1,147 +1,144 @@
 <template>
-  <div :style="`width: 100%; height: ${props.contentHeight || 400}px;`" @keyup.esc="handleEsc" @keydown="handleKeyDown"
-    @keyup="handleKeyUp">
-    <!-- Таблица -->
-    <q-table v-if="isAllowView(curentConfig)" ref="table" dense
-      :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-      :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
-      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
-      :hide-header="load" selection="multiple" binary-state-sort :loading="load" :hide-pagination="false"
-      v-model:pagination="pagination" separator="cell" :rows-per-page-options="[0]" no-data-label="Нет данных"
-      grid-header :filter="inputFilter.search" v-model:selected="selected" column-sort-order="da" style="height: 100%;"
-      @row-click="onRowClick">
-      <template v-slot:loading>
-        <PPLoading v-model="load" :dark="props.dark" />
-      </template>
-      <template v-slot:top>
-        <q-card-actions class="row fit q-gutter-sm items-center">
-          <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
-          <div class="text-h6">
-            {{ curentConfig.name }}
-          </div>
-          <q-space />
-          <Button label="Обновить" icon="sync" @click="requestRecords" :dark="props.dark" />
-          <Button label="Новая запись" v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
-          <Button label="Копировать" v-if="isAllowCreate() && selected.length === 1" icon="content_copy"
-            @click="actionCopy" :dark="props.dark" />
-          <Button label="Удалить" v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
-            props.showConfirm('Удалить записи?', actionDelete);
-          }" :dark="props.dark" />
-          <!-- Фильтр подразделения -->
-          <InputSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
-            :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
-            style="width: 150px" />
-          <!-- Пользовательский Фильтр сотрудники -->
-          <InputSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <!-- Фильтр тип работы -->
-          <InputSelect v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
-            :options="inputFilter.type_works" @update:model-value="() => {
-              updateFilterTypeWork();
-              updateInputFilter();
-            }" :dark="props.dark" style="width: 200px;" />
-          <!-- Фильтр целевой объект/проект -->
-          <InputSelect v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
-            label="Целевой объект" v-model="inputFilter.type_activity" :options="inputFilter.activities"
-            @update:model-value="() => {
-              updateFilterTypeWork();
-              updateInputFilter();
-            }" :dark="props.dark" style="width: 200px;" />
-          <!-- Фильтр период -->
-          <InputSelect label="Период" :options="type_period" v-model="inputFilter.period"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 170px;" />
-          <InputDate label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
-          <!-- Поиск -->
-          <InputSearch label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
-        </q-card-actions>
-      </template>
-      <template v-slot:header-cell="props">
-        <q-th :props="props">
-          <div class="text-size">
-            {{ props.col.label }}
-          </div>
-        </q-th>
-      </template>
-      <template v-slot:header-selection="props">
-        <InputCheckbox v-model="props.selected" :dark="props.dark" />
-      </template>
-      <template v-slot:body-selection="props">
-        <InputCheckbox v-model="props.selected" :dark="props.dark" />
-      </template>
-      <template v-slot:pagination>
-        <div class="row q-gutter-sm items-center">
-          <div class="text-size">{{ returnSelectedInfo() }}</div>
-          <!-- Фильтр сортировка -->
-          <InputSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
-            @update:model-value="updateInputFilter" :dark="props.dark" />
-          <Button v-if="records.length > 0" icon="download" label="Экспорт" @click="exportReport" :dark="props.dark" />
+  <!-- Таблица -->
+  <q-table v-if="isAllowView(curentConfig)" ref="table" dense
+    :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
+    :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
+    :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
+    :hide-header="load" selection="multiple" binary-state-sort :loading="load" :hide-pagination="false"
+    v-model:pagination="pagination" separator="cell" :rows-per-page-options="[0]" no-data-label="Нет данных" grid-header
+    :filter="inputFilter.search" v-model:selected="selected" column-sort-order="da" style="height: 90vh;"
+    @row-click="onRowClick">
+    <template v-slot:loading>
+      <PPLoading v-model="load" :dark="props.dark" />
+    </template>
+    <template v-slot:top>
+      <q-card-actions class="row fit q-gutter-sm items-center">
+        <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+        <div class="text-h6">
+          {{ curentConfig.name }}
         </div>
-      </template>
-      <template v-slot:body-cell="props">
-        <q-td :props="props" class="no-pa-ma"
-          :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
-          <div class="text-size q-pa-sm row fit justify-center items-center editable-cell"
-            style="white-space: pre-wrap; min-height: 48px;" @click="openEditPopup(props)">
-            <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
-              <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
-                :dark="props.dark" />
-            </span>
-            <span v-else-if="props.col.type == 'selector' && isAllowEdit(props.row.id, props.col.name)">
-              <InputSelect v-if="activeRowId === props.row.id" cell v-model="props.row[props.col.name]"
-                :options="props.col.options(props.row)" :dark="props.dark" @update:model-value="(val) => {
-                  save(props.row.id, props.col.name, val.id);
-                  if (props.col.name === 'type_work') updateTypeWork(props.row);
-                }" />
-              <span v-else>{{ props.value }}</span>
-            </span>
-            <span class="fit"
-              v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
-              <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type"
-                v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
-                  save(props.row.id, props.col.name, props.row[props.col.name]);
-                }" />
-              <span v-else>{{ props.value }}</span>
-            </span>
-            <span v-else-if="props.col.type == 'number' && isAllowEdit(props.row.id, props.col.name)">
-              <InputNumber v-if="activeRowId === props.row.id" cell :type="props.col.type"
-                v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
-                  save(props.row.id, props.col.name, props.row[props.col.name]);
-                }" />
-              <span v-else>{{ props.value }}</span>
-            </span>
-            <span v-else style="white-space: pre-line; padding: 5px;">
-              {{ props.value }}
-            </span>
-          </div>
-        </q-td>
-      </template>
-    </q-table>
-    <q-card-section v-else class="row q-gutter-xs full-width items-center">
-      <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
-      <div class="text-h6">
-        Нет доступа
+        <q-space />
+        <Button label="Обновить" icon="sync" @click="requestRecords" :dark="props.dark" />
+        <Button label="Новая запись" v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
+        <Button label="Копировать" v-if="isAllowCreate() && selected.length === 1" icon="content_copy"
+          @click="actionCopy" :dark="props.dark" />
+        <Button label="Удалить" v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
+          props.showConfirm('Удалить записи?', actionDelete);
+        }" :dark="props.dark" />
+        <!-- Фильтр подразделения -->
+        <InputSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
+          :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
+          style="width: 150px" />
+        <!-- Пользовательский Фильтр сотрудники -->
+        <InputSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <!-- Фильтр тип работы -->
+        <InputSelect v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
+          :options="inputFilter.type_works" @update:model-value="() => {
+            updateFilterTypeWork();
+            updateInputFilter();
+          }" :dark="props.dark" style="width: 200px;" />
+        <!-- Фильтр целевой объект/проект -->
+        <InputSelect v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
+          label="Целевой объект" v-model="inputFilter.type_activity" :options="inputFilter.activities"
+          @update:model-value="() => {
+            updateFilterTypeWork();
+            updateInputFilter();
+          }" :dark="props.dark" style="width: 200px;" />
+        <!-- Фильтр период -->
+        <InputSelect label="Период" :options="type_period" v-model="inputFilter.period"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 170px;" />
+        <InputDate label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <!-- Поиск -->
+        <InputSearch label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
+      </q-card-actions>
+    </template>
+    <template v-slot:header-cell="props">
+      <q-th :props="props">
+        <div class="text-size">
+          {{ props.col.label }}
+        </div>
+      </q-th>
+    </template>
+    <template v-slot:header-selection="props">
+      <InputCheckbox v-model="props.selected" :dark="props.dark" />
+    </template>
+    <template v-slot:body-selection="props">
+      <InputCheckbox v-model="props.selected" :dark="props.dark" />
+    </template>
+    <template v-slot:pagination>
+      <div class="row q-gutter-sm items-center">
+        <div class="text-size">{{ returnSelectedInfo() }}</div>
+        <!-- Фильтр сортировка -->
+        <InputSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
+          @update:model-value="updateInputFilter" :dark="props.dark" />
+        <Button v-if="records.length > 0" icon="download" label="Экспорт" @click="exportReport" :dark="props.dark" />
       </div>
-    </q-card-section>
-    <!-- Единый попап для редактирования -->
-    <q-dialog square v-model="editPopup.show" @hide="closeEditPopup" @keydown.esc.prevent="closeEditPopup"
-      :dark="props.dark" no-refocus>
-      <q-card style="min-width: 300px;" :dark="true">
-        <q-card-section>
-          <div class="text-h6">{{ editPopup.col.label }}</div>
-        </q-card-section>
-        <q-card-section>
-          <InputDateCell v-if="editPopup.type === 'date'" v-model="editPopup.value" :dark="props.dark" />
-        </q-card-section>
-        <q-card-actions align="right">
-          <Button label="Отмена" @click="closeEditPopup" :dark="props.dark" />
-          <Button label="Сохранить" @click="saveEditPopup" :dark="props.dark" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-  </div>
+    </template>
+    <template v-slot:body-cell="props">
+      <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
+        <div class="text-size q-pa-sm row fit justify-center items-center editable-cell"
+          style="white-space: pre-wrap; min-height: 48px;" @click="openEditPopup(props)">
+          <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
+            <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
+              :dark="props.dark" />
+          </span>
+          <span v-else-if="props.col.type == 'selector' && isAllowEdit(props.row.id, props.col.name)">
+            <InputSelect v-if="activeRowId === props.row.id" cell v-model="props.row[props.col.name]"
+              :options="props.col.options(props.row)" :dark="props.dark" @update:model-value="(val) => {
+                save(props.row.id, props.col.name, val.id);
+                if (props.col.name === 'type_work') updateTypeWork(props.row);
+              }" />
+            <span v-else>{{ props.value }}</span>
+          </span>
+          <span class="fit"
+            v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
+            <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type"
+              v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
+                save(props.row.id, props.col.name, props.row[props.col.name]);
+              }" />
+            <span v-else>{{ props.value }}</span>
+          </span>
+          <span v-else-if="props.col.type == 'number' && isAllowEdit(props.row.id, props.col.name)">
+            <InputNumber v-if="activeRowId === props.row.id" cell :type="props.col.type"
+              v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
+                save(props.row.id, props.col.name, props.row[props.col.name]);
+              }" />
+            <span v-else>{{ props.value }}</span>
+          </span>
+          <span v-else style="white-space: pre-line; padding: 5px;">
+            {{ props.value }}
+          </span>
+        </div>
+      </q-td>
+    </template>
+  </q-table>
+  <q-card-section v-else class="row q-gutter-xs full-width items-center">
+    <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+    <div class="text-h6">
+      Нет доступа
+    </div>
+  </q-card-section>
+  <!-- Единый попап для редактирования -->
+  <q-dialog square v-model="editPopup.show" @hide="closeEditPopup" @keydown.esc.prevent="closeEditPopup"
+    :dark="props.dark" no-refocus>
+    <q-card style="min-width: 300px;" :dark="true">
+      <q-card-section>
+        <div class="text-h6">{{ editPopup.col.label }}</div>
+      </q-card-section>
+      <q-card-section>
+        <InputDateCell v-if="editPopup.type === 'date'" v-model="editPopup.value" :dark="props.dark" />
+      </q-card-section>
+      <q-card-actions align="right">
+        <Button label="Отмена" @click="closeEditPopup" :dark="props.dark" />
+        <Button label="Сохранить" @click="saveEditPopup" :dark="props.dark" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
 </template>
 <script setup>
 import {
@@ -267,16 +264,6 @@ function onRowClick(evt, row) {
 const users = ref([]);
 const selected = ref([]);
 const curentConfig = ref();
-
-const isShiftPressed = ref(false);
-
-function handleKeyDown(e) {
-  if (e.key === 'Shift') isShiftPressed.value = true;
-}
-
-function handleKeyUp(e) {
-  if (e.key === 'Shift') isShiftPressed.value = false;
-}
 
 function isAllowDeleted(_id) {
   try {

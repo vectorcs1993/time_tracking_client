@@ -4,7 +4,7 @@
     :hide-selected-banner="true" selection="none" binary-state-sort :hide-pagination="false"
     v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header no-data-label="Нет данных"
     :filter="filter" v-model:expanded="expanded" v-model:selected="selected" @row-click="selectRow"
-    :style="`height: ${props.contentHeight || 400}px;`">
+    style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="fit">
         <PPBtnAdd :dark="props.dark" @click="() => {

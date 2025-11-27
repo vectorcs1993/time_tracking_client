@@ -4,7 +4,7 @@
     :hide-selected-banner="true" selection="single" :loading="load" color="orange" binary-state-sort
     :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header
     no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
-    @row-dblclick="router.push(`/table/${selected[0].id}`)" :style="`height: ${props.contentHeight || 400}px;`">
+    @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
         <Button :dark="props.dark" icon="add" label="Новая таблица" @click="() => {

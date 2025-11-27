@@ -14,8 +14,7 @@
     ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
     :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
     separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
-    v-model:selected="selected" @row-click="selectRow" :loading="load"
-    :style="`height: ${props.contentHeight || 400}px;`">
+    v-model:selected="selected" @row-click="selectRow" :loading="load" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="fit">
         <Button icon="add" label="Новая активность" @click="() => {

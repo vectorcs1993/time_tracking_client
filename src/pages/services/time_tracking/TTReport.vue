@@ -1,5 +1,5 @@
 <template>
-  <div :style="`width: 100%; height: ${props.contentHeight || 400}px;`">
+  <div style="height: 95vh;">
     <div :class="`${dark ? 'pp-dark' : 'pp-light'} row justify-between items-center`">
       <!-- Текущий отчёт -->
       <Tab v-model="tabConf" :tabs="configs.map(conf => ({ id: `conf${conf.id}`, name: conf.name }))" :dark="props.dark"

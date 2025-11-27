@@ -1,5 +1,5 @@
 <template>
-  <q-splitter v-if="config" v-model="splitter" :dark="props.dark" :style="`height: ${props.contentHeight || 400}px;`">
+  <q-splitter v-if="config" v-model="splitter" :dark="props.dark" style="height: 90vh;">
     <template v-slot:before>
       <div class="row q-pa-sm q-gutter-sm items-center">
         <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
