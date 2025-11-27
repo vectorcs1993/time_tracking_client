@@ -2,9 +2,9 @@
   <q-page class="flex flex-center text-white" :class="`${props.dark ? 'pp-dark' : 'pp-light'}`">
     <q-card square style="width: 370px" :class="`${props.dark ? 'pp-dark' : 'pp-light'}`"
       v-if="!authStore.isAuthenticated">
-      <q-card-section :dark="props.dark" :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`">
-        <div class="text-h6 row justify-center" style="line-height: 10px;"> Авторизация</div>
-      </q-card-section>
+      <div :dark="props.dark" :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white q-pa-sm`">
+        <div class="row justify-center">Авторизация</div>
+      </div>
       <q-card-section>
         <form ref="loginForm" class="q-pa-md q-gutter-sm" @submit.prevent="handleSubmit">
           <TTInputSingle label="Логин (адрес почты)" :dark="props.dark" type="email" v-model="email"
@@ -26,8 +26,8 @@
 <script setup>
 import { ref, defineProps, onMounted, onUnmounted, } from 'vue';
 import { useAuthStore } from 'src/stores/store.js';
-import Button from 'src/components/TTBtn.vue';
-import TTInputSingle from 'src/components/TTInputTextSingle.vue';
+import Button from 'src/components/InputButton.vue';
+import TTInputSingle from 'src/components/InputText.vue';
 
 const authStore = useAuthStore();
 const loginForm = ref(null);

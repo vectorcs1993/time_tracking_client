@@ -18,7 +18,7 @@
           @click="() => router.push(`/configurations/table/${selected[0].id}`)" />
         <Button label="Удалить" :dark="props.dark" v-show="selected.length > 0" icon="delete" @click="remove" />
         <q-space />
-        <TTInputTextSingle label="Поиск" v-model="filter" :dark="props.dark" />
+        <InputSearch label="Поиск" v-model="filter" :dark="props.dark" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
@@ -40,10 +40,10 @@
       </q-td>
     </template>
     <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" />
+      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
     <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" />
+      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
   </q-table>
   <q-dialog v-model="dialogAdd" persistent>
@@ -72,10 +72,10 @@ import {
   defineProps,
 } from 'vue';
 import { useRouter } from 'vue-router';
-import Button from 'src/components/TTBtn.vue';
+import Button from 'src/components/InputButton.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
-import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
-import TTCheckbox from 'src/components/TTCheckbox.vue';
+import TTCheckbox from 'src/components/InputCheckbox.vue';
+import InputSearch from 'src/components/InputSearch.vue';
 
 document.title = 'Настройки таблиц';
 

@@ -22,7 +22,7 @@
       }" @click="toggleOption(option)" @mouseenter="hoveredOption = option" @mouseleave="hoveredOption = null">
         <div class="pp-multiselect-option">
           <TTCheckbox :modelValue="isOptionSelected(option)" @update:modelValue="handleCheckboxChange(option, $event)"
-            :label="option.name" @click.stop />
+            :label="option.name" @click.stop :dark="props.dark" />
         </div>
       </div>
       <div v-if="props.options.length > 0" class="pp-multiselect-actions">
@@ -45,8 +45,8 @@ import {
   nextTick,
 } from 'vue';
 import { dropdownManager } from './dropdownManager.js';
-import TTBtn from './TTBtn.vue';
-import TTCheckbox from './TTCheckbox.vue';
+import TTBtn from './InputButton.vue';
+import TTCheckbox from './InputCheckbox.vue';
 
 const props = defineProps({
   dark: Boolean,

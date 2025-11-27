@@ -17,11 +17,11 @@
       :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" style="height: 95%;">
       <template v-slot:top>
         <q-card-actions class="row full-width q-gutter-sm items-center">
-          <Button label="Обновить" color="green" @click="createReport" :dark="props.dark" />
-          <TTDatePicker label="от" v-model="inputFilter.dateStart" :dark="props.dark"
-            @update:model-value="updateInputFilter" style="width: 100px;" />
-          <TTDatePicker label="до" v-model="inputFilter.dateFinish" :dark="props.dark"
-            @update:model-value="updateInputFilter" style="width: 100px;" />
+          <Button icon="sync" label="Обновить" color="green" @click="createReport" :dark="props.dark" />
+          <InputDate label="от" v-model="inputFilter.dateStart" :dark="props.dark"
+            @update:model-value="updateInputFilter" style="width: 200px;" />
+          <InputDate label="до" v-model="inputFilter.dateFinish" :dark="props.dark"
+            @update:model-value="updateInputFilter" style="width: 200px;" />
           <q-space />
         </q-card-actions>
       </template>
@@ -62,11 +62,12 @@ import {
   ref,
   defineProps,
 } from 'vue';
-import Button from 'src/components/TTBtn.vue';
+import Button from 'src/components/InputButton.vue';
+import InputDate from 'src/components/InputDate.vue';
 import moment from 'moment/moment';
 import Tab from 'src/components/TTTab.vue';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
-import TTDatePicker from 'src/components/TTDatePicker.vue';
+
 
 document.title = 'Отчёты';
 const props = defineProps({

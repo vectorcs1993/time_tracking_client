@@ -93,6 +93,7 @@ export default defineConfig((ctx) => { // can be async too
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#framework
     framework: {
+      lang: 'ru',
       config: {},
 
       // iconSet: 'material-icons', // Quasar icon set

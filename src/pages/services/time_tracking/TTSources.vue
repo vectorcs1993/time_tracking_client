@@ -18,7 +18,7 @@
     :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <Button label="Новый источник поступления" @click="() => {
+        <Button icon="add" label="Новый источник поступления" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
@@ -28,7 +28,7 @@
         }" :dark="props.dark" />
         <Button disable label="Удалить" icon="delete" v-if="selected.length > 0" @click="remove" :dark="props.dark" />
         <q-space />
-        <TTInputTextSingle label="Поиск" v-model="filter" debounce="300" :dark="props.dark" />
+        <InputSearch label="Поиск" v-model="filter" debounce="300" :dark="props.dark" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
@@ -50,10 +50,10 @@
       </q-td>
     </template>
     <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" />
+      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
     <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" />
+      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
   </q-table>
   <PPDialog v-model="dialogAdd" label="Новый источник поступления" :dark="props.dark" styleContent="width: 400px;">
@@ -77,9 +77,10 @@ import {
   onMounted,
 } from 'vue';
 import PPDialog from 'src/components/PPDialog.vue';
-import Button from 'src/components/TTBtn.vue';
-import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
-import TTCheckbox from 'src/components/TTCheckbox.vue';
+import Button from 'src/components/InputButton.vue';
+import TTInputTextSingle from 'src/components/InputText.vue';
+import TTCheckbox from 'src/components/InputCheckbox.vue';
+import InputSearch from 'src/components/InputSearch.vue';
 
 document.title = 'Источники поступлений';
 const props = defineProps({

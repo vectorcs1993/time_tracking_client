@@ -4,7 +4,7 @@
 
 <script setup>
 import { defineProps } from 'vue';
-import PPBtn from '../TTBtn.vue';
+import PPBtn from '../InputButton.vue';
 
 const props = defineProps({
   click: Function,

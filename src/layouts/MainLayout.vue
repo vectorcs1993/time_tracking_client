@@ -51,10 +51,6 @@
               </q-popup-proxy>
             </Button>
           </div>
-          <div v-else>
-            <Button :dark="dark" @click="() => router.push('/login')" :label="'Вход'"
-              style="padding-left: 10px; padding-right: 10px;" />
-          </div>
           <div class="col-2" align="right">
             v{{ version }}
           </div>
@@ -113,7 +109,7 @@ import {
 // import { useQuasar } from 'quasar';
 import DialogError from 'src/components/dialogs/error.vue';
 import DialogConfirm from 'src/components/dialogs/confirm.vue';
-import Button from 'src/components/TTBtn.vue';
+import Button from 'src/components/InputButton.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
@@ -134,13 +130,13 @@ const di = ref(null);
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-
+const mainPage = {
+  label: 'Главная',
+  icon: 'home',
+  to: '/home',
+};
 const routes = [
-  {
-    label: 'Главная',
-    icon: 'home',
-    to: '/home',
-  },
+  mainPage,
   {
     icon: 'view_list',
     label: 'Таблицы',
@@ -173,7 +169,11 @@ const routes = [
   },
 ];
 // const $q = useQuasar();
-const menuList = computed(() => authStore.isAuthenticated ? routes : []);
+const menuList = computed(() => authStore.isAuthenticated ? routes : [mainPage, {
+  icon: 'person',
+  label: 'Вход',
+  to: '/login',
+}]);
 const leftDrawerOpen = ref(true);
 const miniState = ref(true);
 const version = ref(packageInfo.version);

@@ -1,0 +1,21 @@
+<template>
+  <q-input dense :label="props.label" :dark="props.dark"
+    :standout="!cell ? `${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}` : false" :borderless="cell" square
+    :type="props.type" :placeholder="props.placeholder" class="text-size" :hide-bottom-space="true"
+    style="padding: 0px;" :input-style="`text-align: ${cell ? 'center' : 'start'};`" />
+</template>
+
+<script setup>
+import { defineProps } from 'vue';
+
+const props = defineProps({
+  dark: Boolean,
+  type: String,
+  placeholder: String,
+  label: String,
+  cell: {
+    type: Boolean,
+    default: false,
+  }
+});
+</script>

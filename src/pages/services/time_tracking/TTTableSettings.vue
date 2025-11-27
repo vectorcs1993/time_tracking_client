@@ -3,8 +3,8 @@
     <template v-slot:before>
       <div class="row q-pa-sm q-gutter-sm items-center">
         <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
-        <Button v-if="change" @click="save" label="Сохранить" :dark="props.dark" />
-        <Button v-if="change" @click="update" label="Отменить" :dark="props.dark" />
+        <Button icon="save" v-if="change" @click="save" label="Сохранить" :dark="props.dark" />
+        <Button icon="cancel" v-if="change" @click="update" label="Отменить" :dark="props.dark" />
       </div>
       <div class="q-pa-sm q-gutter-sm">
         <TTInputTextSingle label="Наименование" v-model="config.name" style="width: 100%;" :dark="props.dark" />
@@ -17,20 +17,20 @@
           </div>
         </div>
         <div class="q-gutter-xs">
-          <TTCheckbox v-model="config.filters" label="Показывать фильтры" :dark="props.dark" />
-          <TTCheckbox v-model="config.deleteOnlySome" label="Удалять только свои" :dark="props.dark" />
-          <TTCheckbox v-model="config.changeOnlySome" label="Изменять только свои" :dark="props.dark" />
+          <Checkbox v-model="config.filters" label="Показывать фильтры" :dark="props.dark" />
+          <Checkbox v-model="config.deleteOnlySome" label="Удалять только свои" :dark="props.dark" />
+          <Checkbox v-model="config.changeOnlySome" label="Изменять только свои" :dark="props.dark" />
         </div>
-        <TTSelect label="Фильтр подразделение" v-model="config.filter_branch" :options="branches_mod" :dark="props.dark"
-          style="width: 100%;" />
-        <TTSelect label="Фильтр тип работы" v-model="config.filter_type_work" :options="type_works_mod"
+        <InputSelect label="Фильтр подразделение" v-model="config.filter_branch" :options="branches_mod"
+          :dark="props.dark" style="width: 100%;" />
+        <InputSelect label="Фильтр тип работы" v-model="config.filter_type_work" :options="type_works_mod"
           :dark="props.dark" style="width: 100%;" @update:model-value="(val) => {
             if (val.id === OPTION_ALL.id) config.filter_type_activity = type_activities_mod[0];
             else if (val.id === type_works[0].id) type_activitiesOp = type_activities_mod;
             else if (val.id === type_works[1].id) type_activitiesOp = projects_mod;
             config.filter_type_activity = type_activitiesOp[0];
           }" />
-        <TTSelect label="Фильтр целевой объект" v-if="config.filter_type_work.id !== OPTION_ALL.id"
+        <InputSelect label="Фильтр целевой объект" v-if="config.filter_type_work.id !== OPTION_ALL.id"
           v-model="config.filter_type_activity" :options="type_activitiesOp" :dark="props.dark" style="width: 100%;" />
         <TTSelectMultiply label="Разрешить просмотр" v-model="config.allow_views" :options="branches_mod"
           :dark="props.dark" style="width: 100%;" />
@@ -111,7 +111,7 @@
           :filter="filter" v-model:selected="colTableSelected" style="height: 100%; width: 100%;">
           <template v-slot:body-cell="props">
             <q-td :props="props">
-              <TTCheckbox v-if="props.col.type == 'checkbox'" v-model="props.row[props.col.name]" :dark="props.dark" />
+              <Checkbox v-if="props.col.type == 'checkbox'" v-model="props.row[props.col.name]" :dark="props.dark" />
               <q-input v-if="props.col.type == 'color_picked'" :disable="props.row.field.type !== TT_TYPE_FLAG"
                 :dark="props.dark" dense square class="text-size" v-model="props.row[props.col.name]"
                 :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`">
@@ -126,7 +126,7 @@
               </q-input>
               <TTInputTextSingle v-else-if="props.col.type == 'text'" cell :dark="props.dark"
                 v-model="props.row[props.col.name]" />
-              <TTSelect cell :dark="props.dark" v-else-if="props.col.type == 'selector'"
+              <InputSelect cell :dark="props.dark" v-else-if="props.col.type == 'selector'"
                 :options="props.col.options(props.row)" v-model="props.row[props.col.name]" @update:model-value="() => {
                   if (props.col.update) {
                     props.col.update(props.row);
@@ -137,11 +137,18 @@
               <div v-else class="text-size"> {{ props.value }}</div>
             </q-td>
           </template>
+          <template v-slot:header-cell="props">
+            <q-th :props="props">
+              <div class="text-size">
+                {{ props.col.label }}
+              </div>
+            </q-th>
+          </template>
           <template v-slot:header-selection="props">
-            <TTCheckbox v-model="props.selected" />
+            <Checkbox v-model="props.selected" :dark="props.dark" />
           </template>
           <template v-slot:body-selection="props">
-            <TTCheckbox v-model="props.selected" />
+            <Checkbox v-model="props.selected" :dark="props.dark" />
           </template>
         </q-table>
       </div>
@@ -157,12 +164,12 @@ import {
   nextTick,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Button from 'src/components/TTBtn.vue';
-import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
-import TTSelect from 'src/components/TTSelect.vue';
+import Button from 'src/components/InputButton.vue';
+import TTInputTextSingle from 'src/components/InputText.vue';
 import TTSelectMultiply from 'src/components/TTSelectMultiply.vue';
-import TTCheckbox from 'src/components/TTCheckbox.vue';
+import Checkbox from 'src/components/InputCheckbox.vue';
 import { getNewId, OPTION_ALL, TT_TYPE_FLAG } from './fun';
+import InputSelect from 'src/components/InputSelect.vue';
 
 const route = useRoute();
 const router = useRouter();

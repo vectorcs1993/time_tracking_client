@@ -18,7 +18,7 @@
     :style="`height: ${props.contentHeight || 400}px;`">
     <template v-slot:top>
       <q-card-actions class="fit">
-        <Button label="Новый проект" @click="() => {
+        <Button icon="add" label="Новый проект" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
@@ -28,7 +28,7 @@
         }" :dark="props.dark" />
         <Button label="Удалить" v-if="selected.length > 0" disable @click="remove" :dark="props.dark" />
         <q-space />
-        <TTInputTextSingle label="Поиск" :dark="props.dark" v-model="filter" />
+        <InputSearch label="Поиск" :dark="props.dark" v-model="filter" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
@@ -50,10 +50,10 @@
       </q-td>
     </template>
     <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" />
+      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
     <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" />
+      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
   </q-table>
   <PPDialog label="Новый проект" v-model="dialogAdd" :dark="props.dark" styleContent="width: 400px;">
@@ -76,10 +76,11 @@ import {
   defineProps,
   onMounted,
 } from 'vue';
-import Button from 'src/components/TTBtn.vue';
-import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
-import TTCheckbox from 'src/components/TTCheckbox.vue';
+import Button from 'src/components/InputButton.vue';
+import TTInputTextSingle from 'src/components/InputText.vue';
+import TTCheckbox from 'src/components/InputCheckbox.vue';
 import PPDialog from 'src/components/PPDialog.vue';
+import InputSearch from 'src/components/InputSearch.vue';
 
 document.title = 'Проекты';
 const props = defineProps({

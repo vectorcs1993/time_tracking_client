@@ -1,24 +1,25 @@
 <template>
-  <div :style="`width: 100%; height: ${props.contentHeight || 400}px;`" @keyup.esc="handleEsc" @click="selectRow"
-    @keydown="handleKeyDown" @keyup="handleKeyUp" tabindex="0">
+  <div :style="`width: 100%; height: ${props.contentHeight || 400}px;`" @keyup.esc="handleEsc" @keydown="handleKeyDown"
+    @keyup="handleKeyUp">
     <!-- Таблица -->
     <q-table v-if="isAllowView(curentConfig)" ref="table" dense
       :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :dark="props.dark" square flat
-      :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells :hide-selected-banner="true"
-      :hide-header="false" selection="multiple" binary-state-sort :loading="load"
-      :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
-      separator="cell" :rows-per-page-options="[1]" no-data-label="Нет данных" grid-header :filter="inputFilter.search"
-      v-model:selected="selected" @row-click="selectRow" column-sort-order="da" style="height: 100%;">
+      :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
+      :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
+      :hide-header="load" selection="multiple" binary-state-sort :loading="load" :hide-pagination="false"
+      v-model:pagination="pagination" separator="cell" :rows-per-page-options="[0]" no-data-label="Нет данных"
+      grid-header :filter="inputFilter.search" v-model:selected="selected" column-sort-order="da" style="height: 100%;"
+      @row-click="onRowClick">
       <template v-slot:loading>
         <PPLoading v-model="load" :dark="props.dark" />
       </template>
       <template v-slot:top>
-        <q-card-actions class="row q-gutter-xs full-width items-center">
+        <q-card-actions class="row fit q-gutter-sm items-center">
           <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
           <div class="text-h6">
             {{ curentConfig.name }}
           </div>
+          <q-space />
           <Button label="Обновить" icon="sync" @click="requestRecords" :dark="props.dark" />
           <Button label="Новая запись" v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
           <Button label="Копировать" v-if="isAllowCreate() && selected.length === 1" icon="content_copy"
@@ -27,35 +28,34 @@
             props.showConfirm('Удалить записи?', actionDelete);
           }" :dark="props.dark" />
           <!-- Фильтр подразделения -->
-          <Select v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
+          <InputSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
             :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
             style="width: 150px" />
           <!-- Пользовательский Фильтр сотрудники -->
-          <Select label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
+          <InputSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
             @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
           <!-- Фильтр тип работы -->
-          <Select v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
+          <InputSelect v-if="inputFilter.on" label="Тип работы" v-model="inputFilter.type_work"
             :options="inputFilter.type_works" @update:model-value="() => {
               updateFilterTypeWork();
               updateInputFilter();
             }" :dark="props.dark" style="width: 200px;" />
           <!-- Фильтр целевой объект/проект -->
-          <Select v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
+          <InputSelect v-if="inputFilter.on" :disable="inputFilter.type_work ? inputFilter.type_work.id === -1 : false"
             label="Целевой объект" v-model="inputFilter.type_activity" :options="inputFilter.activities"
             @update:model-value="() => {
               updateFilterTypeWork();
               updateInputFilter();
             }" :dark="props.dark" style="width: 200px;" />
-          <q-space />
           <!-- Фильтр период -->
-          <Select label="Период" :options="type_period" v-model="inputFilter.period"
+          <InputSelect label="Период" :options="type_period" v-model="inputFilter.period"
             @update:model-value="updateInputFilter" :dark="props.dark" style="width: 170px;" />
-          <TTDatePicker label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 120px;" />
-          <TTDatePicker label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
-            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 120px;" />
+          <InputDate label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
+            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+          <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
+            @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
           <!-- Поиск -->
-          <TTInputTextSingle label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
+          <InputSearch label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
         </q-card-actions>
       </template>
       <template v-slot:header-cell="props">
@@ -66,52 +66,55 @@
         </q-th>
       </template>
       <template v-slot:header-selection="props">
-        <TTCheckbox v-model="props.selected" :dark="props.dark" />
+        <InputCheckbox v-model="props.selected" :dark="props.dark" />
       </template>
       <template v-slot:body-selection="props">
-        <TTCheckbox v-model="props.selected" :dark="props.dark" />
+        <InputCheckbox v-model="props.selected" :dark="props.dark" />
       </template>
       <template v-slot:pagination>
         <div class="row q-gutter-sm items-center">
           <div class="text-size">{{ returnSelectedInfo() }}</div>
           <!-- Фильтр сортировка -->
-          <Select label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
+          <InputSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
             @update:model-value="updateInputFilter" :dark="props.dark" />
           <Button v-if="records.length > 0" icon="download" label="Экспорт" @click="exportReport" :dark="props.dark" />
         </div>
       </template>
       <template v-slot:body-cell="props">
-        <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)}`">
-          <TTInputText
-            v-if="(props.col.type == 'text' || props.col.type == 'textarea') && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            v-model="props.row[props.col.name]" :update="() => {
-              save(props.col.name, props.row[props.col.name]);
-            }" />
-          <TTInputNumber
-            v-else-if="props.col.type == 'number' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            v-model="props.row[props.col.name]" :update="() => {
-              save(props.col.name, props.row[props.col.name]);
-            }" :dark="props.dark" />
-          <TTDatePicker
-            v-else-if="props.col.type == 'date' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            :cell="true" v-model="props.row[props.col.name]" :dark="props.dark"
-            @update:model-value="(val) => save(props.col.name, val)" />
-          <TTCheckbox :disable="!isAllowEdit(props.row.id, props.col.name, false)"
-            v-else-if="props.col.type == 'checkbox'" v-model="props.row[props.col.name]" :dark="props.dark"
-            @update:model-value="(val) => {
-              selected[0] = props.row;
-              save(props.col.name, val);
-            }" />
-          <Select
-            v-else-if="props.col.type == 'selector' && isSelect(props.row.id) && isAllowEdit(props.row.id, props.col.name, false)"
-            :cell="true" v-model="props.row[props.col.name]" :options="props.col.options(props.row)"
-            @update:model-value="(val) => {
-              if (props.col.name === 'type_work') updateTypeWork(props.row);
-              else save(props.col.name, val.id);
-            }" style="width: 100%" :dark="props.dark">
-          </Select>
-          <div v-else class="text-size cell-content">
-            {{ props.value }}
+        <q-td :props="props" class="no-pa-ma"
+          :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
+          <div class="text-size q-pa-sm row fit justify-center items-center editable-cell"
+            style="white-space: pre-wrap; min-height: 48px;" @dblclick="openEditPopup(props)">
+            <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
+              <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
+                :dark="props.dark" />
+            </span>
+            <span v-else-if="props.col.type == 'selector' && isAllowEdit(props.row.id, props.col.name)">
+              <InputSelect v-if="activeRowId === props.row.id" cell v-model="props.row[props.col.name]"
+                :options="props.col.options(props.row)" :dark="props.dark" @update:model-value="(val) => {
+                  save(props.row.id, props.col.name, val.id);
+                  if (props.col.name === 'type_work') updateTypeWork(props.row);
+                }" />
+              <span v-else>{{ props.value }}</span>
+            </span>
+            <span class="fit"
+              v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
+              <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type"
+                v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
+                  save(props.row.id, props.col.name, props.row[props.col.name]);
+                }" />
+              <span v-else>{{ props.value }}</span>
+            </span>
+            <span v-else-if="props.col.type == 'number' && isAllowEdit(props.row.id, props.col.name)">
+              <InputNumber v-if="activeRowId === props.row.id" cell :type="props.col.type"
+                v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
+                  save(props.row.id, props.col.name, props.row[props.col.name]);
+                }" />
+              <span v-else>{{ props.value }}</span>
+            </span>
+            <span v-else style="white-space: pre-line; padding: 5px;">
+              {{ props.value }}
+            </span>
           </div>
         </q-td>
       </template>
@@ -122,6 +125,22 @@
         Нет доступа
       </div>
     </q-card-section>
+    <!-- Единый попап для редактирования -->
+    <q-dialog square v-model="editPopup.show" @hide="closeEditPopup" @keydown.esc.prevent="closeEditPopup"
+      :dark="props.dark" no-refocus>
+      <q-card style="min-width: 300px;" :dark="true">
+        <q-card-section>
+          <div class="text-h6">{{ editPopup.col.label }}</div>
+        </q-card-section>
+        <q-card-section>
+          <InputDateCell v-if="editPopup.type === 'date'" v-model="editPopup.value" :dark="props.dark" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <Button label="Отмена" @click="closeEditPopup" :dark="props.dark" />
+          <Button label="Сохранить" @click="saveEditPopup" :dark="props.dark" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <script setup>
@@ -134,15 +153,16 @@ import { useRoute, useRouter } from 'vue-router';
 import moment from 'moment/moment';
 import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
-import Button from 'src/components/TTBtn.vue';
+import Button from 'src/components/InputButton.vue';
 import PPLoading from 'src/components/PPLoading.vue';
-import TTCheckbox from 'src/components/TTCheckbox.vue';
+import InputCheckbox from 'src/components/InputCheckbox.vue';
 import { getNameShort, isDateInRange, OPTION_ALL, TT_TYPE_FLAG } from './fun';
-import TTDatePicker from 'src/components/TTDatePicker.vue';
-import TTInputNumber from 'src/components/TTInputNumber.vue';
-import TTInputText from 'src/components/TTInputText.vue';
-import TTInputTextSingle from 'src/components/TTInputTextSingle.vue';
-import Select from 'src/components/TTSelect.vue';
+import InputNumber from 'src/components/InputText.vue';
+import InputText from 'src/components/InputTextarea.vue';
+import InputSearch from 'src/components/InputSearch.vue';
+import InputSelect from 'src/components/InputSelect.vue';
+import InputDate from 'src/components/InputDate.vue';
+import InputDateCell from 'src/components/InputDateCell.vue';
 
 const load = ref(false);
 
@@ -238,11 +258,16 @@ const inputFilter = ref({
   activity: undefined,
   activities: [],
 });
+
+const activeRowId = ref(null);
+function onRowClick(evt, row) {
+  // Устанавливаем активную строку
+  activeRowId.value = row.id;
+}
 const users = ref([]);
 const selected = ref([]);
 const curentConfig = ref();
 
-const lastSelectedIndex = ref(-1);
 const isShiftPressed = ref(false);
 
 function handleKeyDown(e) {
@@ -252,28 +277,7 @@ function handleKeyDown(e) {
 function handleKeyUp(e) {
   if (e.key === 'Shift') isShiftPressed.value = false;
 }
-function selectRow(_event, row) {
-  if (row) {
-    if (isShiftPressed.value) {
-      // Shift + клик - добавляем/убираем запись
-      const index = selected.value.findIndex(s => s.id === row.id);
-      if (index === -1) {
-        selected.value.push(row);
-      } else {
-        selected.value.splice(index, 1);
-      }
-    } else {
-      // Обычный клик - выделяем только эту строку
-      selected.value.length = 0;
-      selected.value.push(row);
-    }
 
-    lastSelectedIndex.value = records.value.findIndex(r => r.id === row.id);
-  }
-}
-function isSelect(_id) {
-  return selected.value.findIndex((s) => s.id === _id) !== -1 && selected.value.length === 1;
-}
 function isAllowDeleted(_id) {
   try {
     if (curentConfig.value.cols.length > 0) {
@@ -309,7 +313,7 @@ function getCustomStyle(row, col) {
     return '';
   }
 }
-function isAllowEdit(_id, _col, needSelect) {
+function isAllowEdit(_id, _col, needSelect = false) {
   try {
     if (curentConfig.value.cols.length > 0) {
       const changeRow = (needSelect ? selected.value.length > 0 : true) && curentConfig.value.allow_edit.find((b) => b === props.authStore.getUser.branch) !== undefined;
@@ -687,44 +691,30 @@ function update(callback) {
       inputFilter.value.dateFinish = localStorage.getItem('filter_date_finish');
     }
     selected.value.length = 0;
-    load.value = true;
     tabConf.value = `conf${curentConfig.value.id}`;
     inputFilter.value.on = curentConfig.value.filters;
     columns.value.length = 0;
     props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
       fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
       // формирование столбцов
-      // if (curentConfig.value.cols.length > 0) {
       curentConfig.value.cols.forEach((col) => {
         const findCol = columnsPerm.find((c) => c.name === col.field);
-        if (col.name !== undefined && col.name !== '') {
-          findCol.label = col.name;
-        } else {
-          findCol.label = findCol.name;
-        }
+        if (col.name !== undefined && col.name !== '') findCol.label = col.name;
+        else findCol.label = findCol.name;
         columns.value.push(findCol);
       });
-
       // установка фильтра тип работы
       inputFilter.value.type_works.length = 0;
       inputFilter.value.type_works.push(OPTION_ALL);
       inputFilter.value.type_works.push(...type_works);
-      if (curentConfig.value.filters) {
-        inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
-      } else {
-        inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
-      }
-      if (!inputFilter.value.type_work) {
-        inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
-      }
-
+      if (curentConfig.value.filters) inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
+      else inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
+      if (!inputFilter.value.type_work) inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
       // целевой объект
       activities.value.length = 0;
       props.authStore.authorizedRequest('get', `activities`).then((respA) => {
         activities.value.push(...respA.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-        if (!inputFilter.value.type_activity) {
-          inputFilter.value.type_activity = getObject(inputFilter.value.activities, -1);
-        }
+        if (!inputFilter.value.type_activity) inputFilter.value.type_activity = getObject(inputFilter.value.activities, -1);
         // источники поступления задач
         sources.value.length = 0;
         props.authStore.authorizedRequest('get', `sources`).then((respS) => {
@@ -739,24 +729,14 @@ function update(callback) {
               inputFilter.value.branches.length = 0;
               inputFilter.value.branches.push(OPTION_ALL);
               inputFilter.value.branches.push(...branches.value);
-              if (curentConfig.value.filters) {
-                inputFilter.value.branch = getObject(inputFilter.value.branches, getItem('filter_branch'));
-              } else {
-                inputFilter.value.branch = getObject(inputFilter.value.branches, curentConfig.value.filter_branch);
-              }
-              if (!inputFilter.value.branch) {
-                inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
-              }
-
+              if (curentConfig.value.filters) inputFilter.value.branch = getObject(inputFilter.value.branches, getItem('filter_branch'));
+              else inputFilter.value.branch = getObject(inputFilter.value.branches, curentConfig.value.filter_branch);
+              if (!inputFilter.value.branch) inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
               inputFilter.value.activities.length = 0;
               inputFilter.value.activities.push(OPTION_ALL);
               inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
-              if (curentConfig.value.filters) {
-                inputFilter.value.type_activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
-              } else {
-                inputFilter.value.type_activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
-              }
-
+              if (curentConfig.value.filters) inputFilter.value.type_activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
+              else inputFilter.value.type_activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
               users.value.length = 0;
               props.authStore.authorizedRequest('get', `users`).then((respU) => {
                 users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
@@ -836,6 +816,65 @@ function actionCreate() {
     props.showInfo('Ошибка создания записи');
   });
 }
+const editPopup = ref({
+  show: false,
+  row: null,
+  col: null,
+  value: null,
+  type: '',
+  options: []
+});
+function openEditPopup(props) {
+  if (!isAllowEdit(props.row.id, props.col.name)
+    || props.col.type === 'checkbox'
+    || props.col.type === 'number'
+    || props.col.type === 'text'
+    || props.col.type === 'textarea'
+    || props.col.type === 'selector') return;
+
+  editPopup.value = {
+    show: true,
+    row: props.row,
+    col: props.col,
+    value: props.row[props.col.name],
+    type: props.col.type,
+    options: props.col.options ? props.col.options(props.row) : []
+  }
+}
+
+function closeEditPopup() {
+  editPopup.value.show = false
+  // Очищаем с задержкой чтобы анимация завершилась
+  setTimeout(() => {
+    editPopup.value = {
+      show: false,
+      row: null,
+      col: null,
+      value: null,
+      type: '',
+      options: []
+    }
+  }, 300)
+}
+
+function saveEditPopup() {
+  if (editPopup.value.row && editPopup.value.col) {
+    const { row, col, value } = editPopup.value
+
+    // Обновляем значение в строке
+    row[col.name] = value
+
+    // Сохраняем на сервер
+    save(row.id, col.name, col.type === 'selector' ? value.id : value);
+
+    // Обработка специальных случаев
+    if (col.name === 'type_work') {
+      updateTypeWork(row)
+    }
+
+    closeEditPopup()
+  }
+}
 function actionCopy() {
   const date = moment().format(datetimeFormat);
   localStorage.setItem('filter_date_finish', date);
@@ -875,11 +914,11 @@ function actionDelete() {
     props.showInfo('Ошибка удаления записи');
   });
 }
-function save(col, value) {
-  if (value !== undefined) {
+function save(id, col, value) {
+  if (col !== undefined && id !== undefined && value !== undefined) {
     const updateRow = {};
     updateRow[col] = value;
-    props.authStore.authorizedRequest('post', `records/${selected.value[0].id}`, updateRow).catch((err) => {
+    props.authStore.authorizedRequest('post', `records/${id}`, updateRow).catch((err) => {
       console.log(err);
       props.showError('Ошибка при работе с таблицей');
       update();
@@ -912,12 +951,13 @@ function updateInputFilter() {
   saveForLocalStorage();
   requestRecords();
 }
+
 function updateTypeWork(row) {
   const typeWId = row.type_work.id;
   [row.type_activity] = typeWId === TYPE_WORK_PROJECT ? projects.value : activities.value;
   const typeAId = row.type_activity.id;
-  save('type_work', typeWId);
-  save('type_activity', typeAId);
+  save(row.id, 'type_work', typeWId);
+  save(row.id, 'type_activity', typeAId);
 }
 const pagination = ref({
   rowsPerPage: 0,
@@ -957,8 +997,6 @@ onMounted(() => {
     conf.allow_delete = JSON.parse(conf.allow_delete);
     conf.allow_edit = JSON.parse(conf.allow_edit);
     conf.cols = JSON.parse(conf.cols);
-    console.log(conf);
-
     curentConfig.value = conf;
     update();
   }).catch(() => {

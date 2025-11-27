@@ -318,12 +318,12 @@ import { type_work_progress } from 'src/pages/services/time_tracking/type_work_p
 // import { type_conditions } from 'src/pages/services/time_tracking/type_conditions.js';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import PPBtnAdd from 'src/components/buttons/PPBtnAdd.vue';
-import PPBtn from 'src/components/TTBtn.vue';
+import PPBtn from 'src/components/InputButton.vue';
 import PPDialog from 'src/components/PPDialog.vue';
 import PPSearchInput from 'src/components/inputs/PPSearchInput.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import PPCheckbox from 'src/components/PPCheckbox.vue';
-import PPSimpleSelect from 'src/components/selects/PPSimpleSelect.vue';
+import PPSimpleSelect from 'src/components/InputSelect.vue';
 import PPMultipleSelect from 'src/components/selects/PPMultipleSelect.vue';
 import { TYPE_REPORT_BRANCH, TYPE_REPORT_INDIVIDUAL, TYPE_REPORT_PROJECT_INDIVIDUAL } from './type_reports';
 import { getNewId, OPTION_ALL } from './fun';

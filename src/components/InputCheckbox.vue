@@ -1,13 +1,12 @@
 <template>
-  <PPBtn :dark="props.dark" icon="add" @click="props.click" />
+  <q-checkbox square :dark="props.dark" dense>
+    <slot name="default" />
+  </q-checkbox>
 </template>
-
 <script setup>
 import { defineProps } from 'vue';
-import PPBtn from '../InputButton.vue';
 
 const props = defineProps({
-  click: Function,
   dark: Boolean,
 });
 </script>
