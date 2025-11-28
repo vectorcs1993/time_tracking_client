@@ -1,13 +1,13 @@
 <template>
-  <q-input dense square v-model="displayDate" readonly :input-style="`text-align: ${cell ? 'center' : 'start'};`"
-    mask="##.##.####" :dark="props.dark" hide-bottom-space
+  <q-input dense square v-model="displayDate" readonly class="q-pa-none"
+    :input-style="`text-align: ${cell ? 'center' : 'start'};`" mask="##.##.####" :dark="props.dark" hide-bottom-space
     :standout="!cell ? `${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}` : false" :borderless="cell"
     placeholder="ДД.ММ.ГГГГ" :clearable="!cell">
     <template v-slot:append>
-      <q-icon name="event" class="cursor-pointer">
+      <q-icon name="event" class="cursor-pointer q-pa-none" size="sm">
         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
           <q-date v-model="internalDate" :dark="props.dark">
-            <div class="row items-center justify-end q-gutter-sm">
+            <div class="row items-center justify-end q-gutter-xs">
               <InputButton label="Сегодня" @click="setToday" :dark="props.dark" />
               <InputButton v-close-popup label="Закрыть" :dark="props.dark" />
             </div>

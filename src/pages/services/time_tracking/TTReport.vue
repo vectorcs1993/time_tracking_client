@@ -146,6 +146,8 @@ function createReport() {
 }
 function exportReport() {
   const data = {
+    dateStart: inputFilter.value.dateStart,
+    dateFinish: inputFilter.value.dateFinish,
     columns: columns.value,
     rows: [...rows.value, total.value],
     prefix: 'report',

@@ -94,7 +94,7 @@
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
-          <span class="fit"
+          <span class="fit" style="overflow: hidden;"
             v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
             <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type"
               v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
@@ -105,6 +105,13 @@
           <span v-else-if="props.col.type == 'number' && isAllowEdit(props.row.id, props.col.name)">
             <InputNumber v-if="activeRowId === props.row.id" cell :type="props.col.type"
               v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
+                save(props.row.id, props.col.name, props.row[props.col.name]);
+              }" />
+            <span v-else>{{ props.value }}</span>
+          </span>
+          <span v-else-if="props.col.type == 'date' && isAllowEdit(props.row.id, props.col.name)">
+            <InputDate v-if="activeRowId === props.row.id" cell readonly v-model="props.row[props.col.name]"
+              :dark="props.dark" @update:model-value="() => {
                 save(props.row.id, props.col.name, props.row[props.col.name]);
               }" />
             <span v-else>{{ props.value }}</span>
@@ -122,23 +129,6 @@
       Нет доступа
     </div>
   </q-card-section>
-  <!-- Единый попап для редактирования -->
-  <q-dialog square v-model="editPopup.show" @hide="closeEditPopup" @keydown.esc.prevent="closeEditPopup"
-    :dark="props.dark" no-refocus>
-    <q-card style="min-width: 300px;" :dark="true">
-      <q-card-section>
-        <div class="text-h6">{{ editPopup.col.label }}</div>
-      </q-card-section>
-      <q-card-section>
-        <InputDateCell v-if="editPopup.type === 'date'" v-model="editPopup.value" :dark="props.dark" />
-      </q-card-section>
-      <q-card-actions align="right">
-        <Button label="Отмена" @click="closeEditPopup" :dark="props.dark" />
-        <Button label="Сохранить" @click="saveEditPopup" :dark="props.dark" />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-
 </template>
 <script setup>
 import {
@@ -159,7 +149,6 @@ import InputText from 'src/components/InputTextarea.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 import InputSelect from 'src/components/InputSelect.vue';
 import InputDate from 'src/components/InputDate.vue';
-import InputDateCell from 'src/components/InputDateCell.vue';
 
 const load = ref(false);
 
@@ -817,7 +806,7 @@ function openEditPopup(props) {
     || props.col.type === 'number'
     || props.col.type === 'text'
     || props.col.type === 'textarea'
-    || props.col.type === 'selector') return;
+    || props.col.type === 'selector' || props.col.type === 'date') return;
 
   editPopup.value = {
     show: true,
@@ -826,40 +815,6 @@ function openEditPopup(props) {
     value: props.row[props.col.name],
     type: props.col.type,
     options: props.col.options ? props.col.options(props.row) : []
-  }
-}
-
-function closeEditPopup() {
-  editPopup.value.show = false
-  // Очищаем с задержкой чтобы анимация завершилась
-  setTimeout(() => {
-    editPopup.value = {
-      show: false,
-      row: null,
-      col: null,
-      value: null,
-      type: '',
-      options: []
-    }
-  }, 300)
-}
-
-function saveEditPopup() {
-  if (editPopup.value.row && editPopup.value.col) {
-    const { row, col, value } = editPopup.value
-
-    // Обновляем значение в строке
-    row[col.name] = value
-
-    // Сохраняем на сервер
-    save(row.id, col.name, col.type === 'selector' ? value.id : value);
-
-    // Обработка специальных случаев
-    if (col.name === 'type_work') {
-      updateTypeWork(row)
-    }
-
-    closeEditPopup()
   }
 }
 function actionCopy() {
@@ -959,6 +914,8 @@ function returnSelectedInfo() {
 }
 function exportReport() {
   const data = {
+    dateStart: inputFilter.value.dateStart,
+    dateFinish: inputFilter.value.dateFinish,
     columns: columns.value,
     rows: table.value.filteredSortedRows.map((r) => {
       const e = { ...r };
