@@ -4,7 +4,7 @@
     :hide-selected-banner="true" selection="single" :loading="load" color="orange" binary-state-sort
     :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header
     no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
-    @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
+    @row-dblclick="router.push(`/report/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
         <Button :dark="props.dark" icon="add" label="Новая таблица" @click="() => {
@@ -13,9 +13,9 @@
           selected.length = 0;
         }" />
         <Button :dark="props.dark" v-show="selected.length > 0" label="Открыть" icon="open_in_new"
-          @click="() => router.push(`/table/${selected[0].id}`)" />
+          @click="() => router.push(`/report/${selected[0].id}`)" />
         <Button :dark="props.dark" v-show="selected.length > 0" label="Изменить" icon="edit"
-          @click="() => router.push(`/configurations/table/${selected[0].id}`)" />
+          @click="() => router.push(`/configurations/report/${selected[0].id}`)" />
         <Button label="Удалить" :dark="props.dark" v-show="selected.length > 0" icon="delete" @click="remove" />
         <q-space />
         <InputSearch label="Поиск" v-model="filter" :dark="props.dark" />
@@ -77,7 +77,7 @@ import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import TTCheckbox from 'src/components/InputCheckbox.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 
-document.title = 'Настройки таблиц';
+document.title = 'Настройки отч';
 
 const props = defineProps({
   showError: Function,
@@ -117,7 +117,7 @@ const columns = ref([
 ]);
 function isAllowView(val) {
   try {
-    return val.allow_views.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
+    return val.allow_view.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
   } catch (err) {
     console.log(err);
     return false;
@@ -126,11 +126,11 @@ function isAllowView(val) {
 function update() {
   load.value = true;
   rows.value.length = 0;
-  props.authStore.authorizedRequest('get', `all_configs`).then((resp) => {
+  props.authStore.authorizedRequest('get', `all_reports`).then((resp) => {
     rows.value.push(...resp.data.map((c) => {
       return {
         ...c,
-        allow_views: JSON.parse(c.allow_views),
+        allow_view: JSON.parse(c.allow_view),
       };
     }).filter((c) => isAllowView(c)));
     load.value = false;
@@ -144,20 +144,21 @@ function selectRow(event, row) {
 }
 function add() {
   const query = { name: modelInput.value.name };
-  props.authStore.authorizedRequest('post', `configs`, query).then(() => {
+  props.authStore.authorizedRequest('post', `reports`, query).then(() => {
     dialogAdd.value = false;
     update();
   }).catch(() => {
-    props.showError(`Конфигурация таблицы "${query.name}" уже существует в базе данных`);
+    props.showError(`Конфигурация отчёта "${query.name}" уже существует в базе данных`);
   });
 }
 function remove() {
-  props.showConfirm(`Удалить конфигурацию таблицы ${selected.value[0].name}?`, () => {
-    props.authStore.authorizedRequest('delete', `configs/${selected.value[0].id}`).then(() => {
+  props.showConfirm(`Удалить конфигурацию отчёта ${selected.value[0].name}?`, () => {
+    props.authStore.authorizedRequest('delete', `reports/${selected.value[0].id}`).then(() => {
       update();
     });
   });
 }
+
 onMounted(() => {
   update();
 });

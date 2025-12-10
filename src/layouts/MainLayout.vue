@@ -162,11 +162,6 @@ const routes = [
     label: 'Источники поступления',
     to: '/sources',
   },
-  {
-    icon: 'construction',
-    label: 'Настройка отчётов',
-    to: '/settings/reports',
-  },
 ];
 // const $q = useQuasar();
 const menuList = computed(() => authStore.isAuthenticated ? routes : [mainPage, {

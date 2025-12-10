@@ -21,11 +21,11 @@
           dialogAdd = true;
           modelInput.name = '';
         }" :dark="props.dark" />
-        <Button v-if="selected.length > 0" label="Изменить" @click="() => {
+        <Button v-if="selected.length > 0" icon="edit" label="Изменить" @click="() => {
           dialogUpdate = true;
           modelInput.name = selected[0].name;
         }" :dark="props.dark" />
-        <Button label="Удалить" v-if="selected.length > 0" disable @click="remove" :dark="props.dark" />
+        <Button label="Удалить" icon="delete" v-if="selected.length > 0" disable @click="remove" :dark="props.dark" />
         <q-space />
         <InputSearch label="Поиск" :dark="props.dark" v-model="filter" />
       </q-card-actions>

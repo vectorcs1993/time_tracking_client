@@ -3,6 +3,9 @@
     <template v-slot:before>
       <div class="row q-pa-sm q-gutter-sm items-center">
         <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+        <div class="row items-center text-h6">
+          Таблица
+        </div>
         <Button icon="save" v-if="change" @click="save" label="Сохранить" :dark="props.dark" />
         <Button icon="cancel" v-if="change" @click="update" label="Отменить" :dark="props.dark" />
       </div>
@@ -117,7 +120,7 @@
                 :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`">
                 <template v-slot:append>
                   {{ props.row.field.type }}
-                  <q-icon name="colorize" class="cursor-pointer">
+                  <q-icon name="colorize" :style="`color: ${props.row[props.col.name]};`" class="cursor-pointer">
                     <q-popup-proxy cover transition-show="scale" transition-hide="scale">
                       <q-color class="text-size" v-model="props.row[props.col.name]" />
                     </q-popup-proxy>
@@ -290,7 +293,7 @@ function update() {
                 config.value.allow_delete = [];
               }
               config.value.allow_delete = config.value.allow_delete.map((e) => branches.value.find((b) => b.id === e));
-              document.title = `Конфигурация ${config.value.name || 'Ошибка'}`;
+              document.title = `Настройка таблицы ${config.value.name || 'Ошибка'}`;
 
               // После полной инициализации включаем отслеживание изменений
               nextTick(() => {

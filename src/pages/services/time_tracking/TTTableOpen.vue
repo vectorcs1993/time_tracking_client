@@ -13,7 +13,7 @@
     </template>
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm items-center">
-        <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
+        <Button icon="arrow_back" label="К таблицам" @click="router.push(`/tables`)" :dark="props.dark" />
         <div class="text-h6">
           {{ curentConfig.name }}
         </div>
@@ -47,7 +47,7 @@
           }" :dark="props.dark" style="width: 200px;" />
         <!-- Фильтр период -->
         <InputSelect label="Период" :options="type_period" v-model="inputFilter.period"
-          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 170px;" />
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
         <InputDate label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
           @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
         <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
@@ -116,7 +116,7 @@
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
-          <span v-else style="white-space: pre-line; padding: 5px;">
+          <span v-else style="white-space: pre-line; padding: 0px;">
             {{ props.value }}
           </span>
         </div>
@@ -167,7 +167,6 @@ const props = defineProps({
   authStore: Object,
 });
 const table = ref(null);
-const tabConf = ref();
 const branches = ref([]);
 const projects = ref([]);
 const sources = ref([]);
@@ -308,7 +307,7 @@ function isAllowEdit(_id, _col, needSelect = false) {
 }
 function isAllowView(val) {
   try {
-    return val.allow_views.find((b) => b === props.authStore.getUser.branch);
+    return val.allow_views.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
   } catch (err) {
     console.log(err);
     return false;
@@ -342,6 +341,7 @@ const columnsPerm = [
     edit: true,
     type: 'date',
     sort: (a, b, rowA, rowB) => new Date(rowB.createdRaw) - new Date(rowA.createdRaw),
+    style: 'min-width: 120px; max-width: 120px;',
   },
   {
     name: 'updatedAt',
@@ -350,6 +350,7 @@ const columnsPerm = [
     field: (row) => getTimeFormatForce(row.updatedAt, 'DD.MM.YYYY'),
     sortable: true,
     sort: (a, b, rowA, rowB) => new Date(rowB.updatedRaw) - new Date(rowA.updatedRaw),
+    style: 'min-width: 120px; max-width: 120px;',
   },
   {
     name: 'dateStartOrder',
@@ -360,6 +361,7 @@ const columnsPerm = [
     edit: true,
     type: 'date',
     sort: (a, b, rowA, rowB) => new Date(rowB.dateStartOrderRaw) - new Date(rowA.dateStartOrderRaw),
+    style: 'min-width: 120px; max-width: 120px;',
   },
   {
     name: 'dateFinishOrder',
@@ -370,6 +372,7 @@ const columnsPerm = [
     edit: true,
     type: 'date',
     sort: (a, b, rowA, rowB) => new Date(rowB.dateFinishOrderRaw) - new Date(rowA.dateFinishOrderRaw),
+    style: 'min-width: 120px; max-width: 120px;',
   },
   {
     name: 'branch',
@@ -381,6 +384,7 @@ const columnsPerm = [
     type: 'selector',
     options: () => branches.value,
     disable: true,
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'user',
@@ -392,7 +396,7 @@ const columnsPerm = [
     type: 'selector',
     options: () => inputFilter.value.usersOnlyBranchNoAll,
     disable: false,
-    style: 'min-width: 120px; max-width: 170px;',
+    style: 'min-width: 120px; max-width: 120px;',
   },
   {
     name: 'type_work',
@@ -403,7 +407,7 @@ const columnsPerm = [
     edit: true,
     type: 'selector',
     options: () => type_works,
-    style: 'min-width: 120px; max-width: 170px;',
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'type_activity',
@@ -414,7 +418,7 @@ const columnsPerm = [
     edit: true,
     type: 'selector',
     options: (row) => (row.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value),
-    style: 'min-width: 120px; max-width: 170px;',
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'type_product',
@@ -425,6 +429,7 @@ const columnsPerm = [
     edit: true,
     type: 'selector',
     options: () => type_product,
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'type_source',
@@ -435,6 +440,7 @@ const columnsPerm = [
     edit: true,
     type: 'selector',
     options: () => sources.value,
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'total_time',
@@ -474,7 +480,7 @@ const columnsPerm = [
     sortable: false,
     edit: true,
     type: 'text',
-    style: 'min-width: 200px;',
+    style: 'min-width: 250px; max-width: 250px;',
   },
   {
     name: 'number',
@@ -484,7 +490,7 @@ const columnsPerm = [
     sortable: false,
     edit: true,
     type: 'text',
-    style: 'min-width: 100px; max-width: 200px; padding: 0;',
+    style: 'min-width: 120px; max-width: 120px;',
   },
   {
     name: 'count',
@@ -494,6 +500,7 @@ const columnsPerm = [
     sortable: false,
     edit: true,
     type: 'text',
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'readyScheme',
@@ -503,7 +510,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
-    style: 'min-width: 60px;',
+    style: 'min-width: 60px; max-width: 60px;',
   },
   {
     name: 'readyProgramm',
@@ -513,7 +520,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
-    style: 'min-width: 60px;',
+    style: 'min-width: 60px; max-width: 60px;',
   },
   {
     name: 'readyDesign',
@@ -523,7 +530,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
-    style: 'min-width: 60px;',
+    style: 'min-width: 60px; max-width: 60px;',
   },
   {
     name: 'readyNomenclature',
@@ -533,6 +540,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
+    style: 'min-width: 60px; max-width: 60px;',
   },
   {
     name: 'startOrder',
@@ -542,6 +550,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
+    style: 'min-width: 60px; max-width: 60px;',
   },
   {
     name: 'finishOrder',
@@ -551,6 +560,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
+    style: 'min-width: 60px; max-width: 60px;',
   },
   {
     name: 'mark',
@@ -560,6 +570,7 @@ const columnsPerm = [
     sortable: false,
     edit: true,
     type: 'text',
+    style: 'min-width: 170px; max-width: 170px;',
   },
   {
     name: 'important',
@@ -569,7 +580,7 @@ const columnsPerm = [
     sortable: true,
     edit: true,
     type: 'checkbox',
-    style: 'min-width: 60px;',
+    style: 'min-width: 60px; max-width: 60px;',
   },
 ];
 const columns = ref([]);
@@ -667,7 +678,6 @@ function update(callback) {
       inputFilter.value.dateFinish = localStorage.getItem('filter_date_finish');
     }
     selected.value.length = 0;
-    tabConf.value = `conf${curentConfig.value.id}`;
     inputFilter.value.on = curentConfig.value.filters;
     columns.value.length = 0;
     props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
@@ -881,7 +891,6 @@ function saveForLocalStorage() {
   localStorage.setItem('filter_sort', inputFilter.value.sorted.id);
   localStorage.setItem('filter_type_work', inputFilter.value.type_work.id);
   localStorage.setItem('filter_activity', inputFilter.value.type_activity.id);
-  localStorage.setItem('config_time_traking', Number(tabConf.value.substr(4)));
   localStorage.setItem('filter_date_start', inputFilter.value.dateStart);
   localStorage.setItem('filter_date_finish', inputFilter.value.dateFinish);
   if (String(inputFilter.value.search) === 'null') inputFilter.value.search = '';

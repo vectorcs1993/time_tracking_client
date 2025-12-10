@@ -18,7 +18,21 @@ const routes = [
         path: '/table/:id', component: () => import('src/pages/services/time_tracking/TTTableOpen.vue'),
         meta: {
           requiresAuth: true,
-          allowedRoles: ['admin'],
+          allowedRoles: ['admin', 'user'],
+        },
+      },
+      {
+        path: '/reports', component: () => import('src/pages/services/time_tracking/TTReports.vue'),
+        meta: {
+          requiresAuth: true,
+          allowedRoles: ['admin', 'user'],
+        },
+      },
+      {
+        path: '/report/:id', component: () => import('src/pages/services/time_tracking/TTReportOpen.vue'),
+        meta: {
+          requiresAuth: true,
+          allowedRoles: ['admin', 'user'],
         },
       },
       {
@@ -29,10 +43,10 @@ const routes = [
         },
       },
       {
-        path: '/reports', component: () => import('src/pages/services/time_tracking/TTReport.vue'),
+        path: '/configurations/report/:id', component: () => import('src/pages/services/time_tracking/TTReportSettings.vue'),
         meta: {
           requiresAuth: true,
-          allowedRoles: ['admin', 'user'],
+          allowedRoles: ['admin'],
         },
       },
       {
@@ -54,13 +68,6 @@ const routes = [
         meta: {
           requiresAuth: true,
           allowedRoles: ['admin', 'user'],
-        },
-      },
-      {
-        path: '/settings/reports', component: () => import('src/pages/services/time_tracking/TTReportSettings.vue'),
-        meta: {
-          requiresAuth: true,
-          allowedRoles: ['admin'],
         },
       },
       { path: '/login', component: () => import('src/pages/LoginPage.vue') },

@@ -1,5 +1,5 @@
 <template>
-  <q-checkbox square :dark="props.dark" dense>
+  <q-checkbox square :dark="props.dark" dense :color="`${props.dark ? 'grey' : 'green'}`">
     <slot name="default" />
   </q-checkbox>
 </template>

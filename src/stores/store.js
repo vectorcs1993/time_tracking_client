@@ -8,10 +8,17 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     branch: null,
     refreshPromise: null,
+    ROLE_ADMINISTRATOR: 'admin',
+    TYPE_WORK_OPERATION: 0,
+    TYPE_WORK_PROJECT: 1,
+    TYPE_METRICS_COUNT: 0,
+    TYPE_METRICS_TIME: 1,
+    TYPE_METRICS_COUNT_BOX: 2,
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.token,
+    isAdministrator: (state) => state.user?.role === state.ROLE_ADMINISTRATOR,
     getUser: (state) => state.user,
     getBranch: (state) => state.branch,
   },
@@ -92,7 +99,6 @@ export const useAuthStore = defineStore('auth', {
       if (data && (method.toLowerCase() === 'post' || method.toLowerCase() === 'put' || method.toLowerCase() === 'patch')) {
         requestConfig.data = data;
       }
-      console.log(requestConfig);
 
       try {
         const response = await api(requestConfig);
@@ -193,6 +199,65 @@ export const useAuthStore = defineStore('auth', {
     // Метод для принудительного логаута без API вызова (например, при ошибках)
     forceLogout() {
       this.clearAuthData();
+    },
+    // Функция для расчета контраста на основе яркости
+    getContrastColor(bgColor) {
+      if (!bgColor) return '#ffffffff';
+
+      // Удаляем пробелы и приводим к нижнему регистру
+      let color = bgColor.trim().toLowerCase();
+
+      // Обрабатываем разные форматы цвета
+      let r, g, b;
+
+      // HEX формат (#fff или #ffffff)
+      if (color.startsWith('#')) {
+        color = color.substring(1);
+
+        // Короткая запись
+        if (color.length === 3) {
+          color = color.split('').map(c => c + c).join('');
+        }
+
+        r = parseInt(color.substr(0, 2), 16);
+        g = parseInt(color.substr(2, 2), 16);
+        b = parseInt(color.substr(4, 2), 16);
+      }
+      // RGB формат
+      else if (color.startsWith('rgb')) {
+        const match = color.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+        if (match) {
+          r = parseInt(match[1]);
+          g = parseInt(match[2]);
+          b = parseInt(match[3]);
+        } else {
+          return '#000';
+        }
+      }
+      // Название цвета
+      else {
+        const colorNames = {
+          'white': [255, 255, 255],
+          'black': [0, 0, 0],
+          'red': [255, 0, 0],
+          'green': [0, 128, 0],
+          'blue': [0, 0, 255],
+          'yellow': [255, 255, 0],
+          // добавьте другие цвета по необходимости
+        };
+
+        if (colorNames[color]) {
+          [r, g, b] = colorNames[color];
+        } else {
+          return '#000'; // fallback
+        }
+      }
+
+      // Рассчитываем относительную яркость (формула W3C)
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+      // Если яркость > 0.5 - черный текст, иначе белый
+      return luminance > 0.5 ? '#000000' : '#ffffff';
     },
     async logout() {
       try {
