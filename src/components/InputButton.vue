@@ -6,7 +6,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineModel } from 'vue';
 
 const props = defineProps({
   label: String,

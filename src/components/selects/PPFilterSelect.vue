@@ -1,22 +1,8 @@
 <template>
-  <q-select
-    dense
-    square
-    v-model="model"
-    clearable
-    :dark="props.dark"
-    :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`"
-    use-input
-    hide-bottom-space
-    hide-selected
-    fill-input
-    input-debounce="0"
-    :options="valuesOp"
-    @filter="filterFn"
-    transition-show="jump-up"
-    transition-hide="jump-up"
-    option-label="name"
-  >
+  <q-select dense square v-model="model" clearable :dark="props.dark"
+    :standout="`${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}`" use-input hide-bottom-space hide-selected
+    fill-input input-debounce="0" :options="valuesOp" @filter="filterFn" transition-show="jump-up"
+    transition-hide="jump-up" option-label="name">
     <template v-slot:no-option>
       <q-item>
         <q-item-section class="text-grey">
@@ -36,13 +22,10 @@
 </template>
 
 <script setup>
-import {
-  defineProps,
-  defineModel,
-  ref,
-} from 'vue';
+import { ref } from 'vue';
 
 const model = defineModel();
+
 const props = defineProps({
   dark: Boolean,
   options: Array,

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { api } from 'boot/axios'
+import moment from 'moment';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -7,13 +8,51 @@ export const useAuthStore = defineStore('auth', {
     refresh: localStorage.getItem(process.env.LOCAL_STORAGE_NAME_TOKEN_REFRESH) || null,
     user: null,
     branch: null,
+    role: null,
     refreshPromise: null,
-    ROLE_ADMINISTRATOR: 'admin',
+    ROLE_ADMINISTRATOR: 1,
+    ROLE_USER: 0,
     TYPE_WORK_OPERATION: 0,
     TYPE_WORK_PROJECT: 1,
     TYPE_METRICS_COUNT: 0,
     TYPE_METRICS_TIME: 1,
     TYPE_METRICS_COUNT_BOX: 2,
+    type_roles: [],
+    type_period: [
+      {
+        id: 0,
+        name: 'Выбрать период',
+      },
+      {
+        id: 1,
+        name: 'Сегодня',
+      },
+      {
+        id: 3,
+        name: 'Вчера',
+      },
+      {
+        id: 4,
+        name: 'Последние 7 дней',
+      },
+      {
+        id: 5,
+        name: 'Последние 30 дней',
+      },
+      {
+        id: 7,
+        name: 'Последние 90 дней',
+      },
+      {
+        id: 6,
+        name: 'Последние 180 дней',
+      },
+      {
+        id: 2,
+        name: 'Все данные',
+      },
+    ],
+    datetimeFormat: 'YYYY-MM-DD',
   }),
 
   getters: {
@@ -21,9 +60,49 @@ export const useAuthStore = defineStore('auth', {
     isAdministrator: (state) => state.user?.role === state.ROLE_ADMINISTRATOR,
     getUser: (state) => state.user,
     getBranch: (state) => state.branch,
+    getRole: (state) => state.role,
+    getTypesPeriod: (state) => state.type_period,
   },
 
   actions: {
+    getItem(val) {
+      if (localStorage.getItem(val) === null || localStorage.getItem(val) === undefined) {
+        return -1;
+      }
+      return Number(localStorage.getItem(val));
+    },
+    getDatePeriod(period, dateStart, dateFinish) {
+      const day = moment();
+      const yesterday = day.clone().subtract(1, 'days');
+      const yesterday7 = day.clone().subtract(7, 'days');
+      const yesterday30 = day.clone().subtract(30, 'days');
+      const yesterday90 = day.clone().subtract(90, 'days');
+      const yesterday180 = day.clone().subtract(180, 'days');
+      // дата старта и финиша - сегодня
+      if (period === 1) {
+        dateStart = day.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === 3) { // вчера
+        dateStart = yesterday.format(this.datetimeFormat);
+        dateFinish = yesterday.format(this.datetimeFormat);
+      } else if (period === 4) { // 7 дней
+        dateStart = yesterday7.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === 5) { // 30 дней
+        dateStart = yesterday30.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === 6) { // 180 дней
+        dateStart = yesterday180.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === 7) { // 90 дней
+        dateStart = yesterday90.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === 2) { // все данные
+        dateStart = 'null';
+        dateFinish = 'null';
+      }
+      return [dateStart, dateFinish];
+    },
     // Инициализация store при загрузке приложения
     initializeStore() {
 
@@ -128,9 +207,11 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-
         const responseMe = await api.get('/me');
         this.user = responseMe.data;
+
+        const responseRoles = await api.get('/roles');
+        this.role = responseRoles.data.find((r) => r.id === this.user.role);
 
         const responseBranch = await api.get(`/branches/${this.user.branch}`);
         this.branch = responseBranch.data;
@@ -140,8 +221,12 @@ export const useAuthStore = defineStore('auth', {
 
         if (err.response?.status === 401 || err.response?.status === 403) {
           await this.refreshToken();
+
           const response = await api.get('/me');
           this.user = response.data;
+
+          const responseRoles = await api.get('/roles');
+          this.role = responseRoles.data.find((r) => r.id === this.user.role);
 
           const responseBranch = await api.get(`/branches/${this.user.branch}`);
           this.branch = responseBranch.data;
@@ -298,6 +383,13 @@ export const useAuthStore = defineStore('auth', {
           reject(error);
         });
       });
+    },
+    isAllowRoute(array) {
+      try {
+        return array.includes(this.getRole.id);
+      } catch {
+        return false;
+      }
     }
   }
 })

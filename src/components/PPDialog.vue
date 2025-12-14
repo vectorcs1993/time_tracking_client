@@ -13,9 +13,6 @@
   </q-dialog>
 </template>
 <script setup>
-import {
-  defineProps,
-} from 'vue';
 
 const props = defineProps({
   dark: Boolean,

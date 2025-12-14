@@ -2,11 +2,11 @@
   <div class="fullscreen bg-primary text-white text-center q-pa-md flex flex-center">
     <div>
       <div style="font-size: 30vh">
-        404
+        422
       </div>
 
       <div class="text-h2" style="opacity:.4">
-        Страницы не существует
+        Нет доступа
       </div>
 
       <q-btn square class="q-mt-xl" color="secondary" text-color="white" unelevated to="/" label="Главная страница"

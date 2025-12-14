@@ -7,7 +7,7 @@
     @row-dblclick="router.push(`/report/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
-        <Button :dark="props.dark" icon="add" label="Новая таблица" @click="() => {
+        <Button :dark="props.dark" icon="add" label="Новый отчёт" @click="() => {
           dialogAdd = true;
           modelInput.name = '';
           selected.length = 0;
@@ -69,7 +69,6 @@
 import {
   onMounted,
   ref,
-  defineProps,
 } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'src/components/InputButton.vue';
@@ -77,7 +76,7 @@ import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import TTCheckbox from 'src/components/InputCheckbox.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 
-document.title = 'Настройки отч';
+document.title = 'Выбор отчёта';
 
 const props = defineProps({
   showError: Function,

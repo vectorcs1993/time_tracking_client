@@ -75,7 +75,6 @@ import TTCheckbox from 'src/components/InputCheckbox.vue';
 import PPDialog from 'src/components/PPDialog.vue';
 import {
   ref,
-  defineProps,
   onMounted,
 } from 'vue';
 import InputSearch from 'src/components/InputSearch.vue';

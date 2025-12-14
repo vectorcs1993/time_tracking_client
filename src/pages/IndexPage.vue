@@ -1,18 +1,31 @@
 <template>
   <q-page :class="`flex flex-center ${props.dark ? 'pp-dark' : 'pp-light'} fit`">
     <div class="row justify-center q-mb-xl">
-      <div class="col-12 col-md-8 text-center">
+      <div class="col-12 text-center">
         <h1 class="text-h2 text-weight-bold q-mb-md">Добро пожаловать в команду</h1>
-        <p class="text-h6 q-mb-lg">Функциональный сервис для планирования задач и учета рабочего времени. Объединяйте
-          команды, повышайте продуктивность и достигайте целей вместе.</p>
+        <p class="text-h6 q-mb-lg">Функциональный сервис для планирования задач* и учета рабочего времени</p>
+        <p class="text-h6 q-mb-lg">
+          Объединяйте команды, повышайте продуктивность и достигайте целей вместе!</p>
       </div>
     </div>
-    <div class="row fit justify-center text-h6">
-      Наши преимущества
+    <div v-if="props.authStore.isAuthenticated" class="row fit justify-center q-gutter-md">
+      <div class="row fit justify-center text-h6">
+        Начните работу:
+      </div>
+      <InputButton icon="co_present" label="Создать новый проект" @click="router.push('/projects')" />
+      <InputButton icon="view_list" label="Заполнить таблицу" @click="router.push('/reports')" />
+      <InputButton icon="insert_chart_outlined" label="Сформировать отчёт" @click="router.push('/reports')" />
     </div>
-    <q-carousel class="row justify-center full-width" animated v-model="slide" navigation infinite :autoplay="autoplay"
-      arrows transition-prev="slide-right" transition-next="slide-left" @mouseenter="autoplay = false"
-      @mouseleave="autoplay = true" :class="`${props.dark ? 'pp-dark' : 'pp-light'}`" :dark="props.dark">
+    <div v-else class="row fit justify-center q-gutter-md">
+      <div class="row fit justify-center text-h6">
+        Для начала авторизуйтесь:
+      </div>
+      <InputButton icon="person" label="Войти в систему" @click="router.push('/login')" />
+    </div>
+    <q-carousel class="row justify-center " animated v-model="slide" navigation infinite :autoplay="autoplay" arrows
+      transition-prev="slide-right" transition-next="slide-left" @mouseenter="autoplay = false"
+      @mouseleave="autoplay = true" :class="`${props.dark ? 'pp-dark' : 'pp-light'}`" :dark="props.dark"
+      style="width: 50%;">
       <q-carousel-slide name="info1" class="column no-wrap flex-center">
         <q-icon name="gpp_good" size="96px" />
         <div class="q-mt-md text-center text-h4">
@@ -21,7 +34,7 @@
       </q-carousel-slide>
       <q-carousel-slide flat name="info2" class="column no-wrap flex-center">
         <q-icon name="emoji_people" size="96px" />
-        <div class="q-mt-md text-center text-h4">
+        <div class="text-center text-h4">
           Стремимся к простоте и удобству
         </div>
       </q-carousel-slide>
@@ -50,6 +63,9 @@
         </div>
       </q-carousel-slide>
     </q-carousel>
+    <div class="row full-width justify-center">
+      <p class=" text-h10 q-mb-lg">* - функционал в процессе разработки</p>
+    </div>
 
     <!-- Фон с анимированными иконками -->
     <div class="background-animation">
@@ -61,19 +77,22 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
+import InputButton from 'src/components/InputButton.vue';
 import {
   ref,
-  defineProps,
   onMounted,
 } from 'vue';
 
 const props = defineProps({
   dark: Boolean,
+  authStore: Object,
 });
 
 document.title = 'Главная';
 const slide = ref('info1');
 const autoplay = ref(true);
+const router = useRouter();
 
 // Данные для плавающих иконок с разными размерами
 const floatingIcons = ref([

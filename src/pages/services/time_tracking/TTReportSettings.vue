@@ -21,7 +21,7 @@
         </div>
         <InputSelect label="Тип отчёта" v-model="config.type" :options="type_reports" :dark="props.dark"
           style="width: 100%;" />
-        <TTSelectMultiply label="Фильтр подразделение" v-model="config.filter_branches" :options="branches_mod"
+        <TTSelectMultiply label="Фильтр группы" v-model="config.filter_branches" :options="branches_mod"
           :dark="props.dark" style="width: 100%;" />
         <TTSelectMultiply label="Разрешить просмотр" v-model="config.allow_view" :options="branches_mod"
           :dark="props.dark" style="width: 100%;" />
@@ -238,7 +238,6 @@
 import {
   onMounted,
   ref,
-  defineProps,
   watch,
   nextTick,
 } from 'vue';

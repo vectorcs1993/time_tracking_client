@@ -179,7 +179,7 @@ const getChartData = () => {
       data: [...dataset.data],
       backgroundColor: colors.background,
       borderColor: colors.border,
-      borderWidth: props.chartType === 'line' ? 3 : 0, // ← ИЗМЕНИТЬ ЗДЕСЬ
+      borderWidth: 3,
     }
 
     // Добавляем специфичные настройки для каждого типа графика
@@ -219,7 +219,6 @@ const getChartData = () => {
 const getChartOptions = () => {
   const colors = themeColors.value
   const isPieChart = props.chartType === 'pie'
-  const isLineChart = props.chartType === 'line'
 
   return {
     responsive: true,
@@ -229,7 +228,7 @@ const getChartOptions = () => {
         display: props.showLegend,
         position: 'top',
         labels: {
-          color: colors.text, // Это устанавливает цвет текста
+          color: colors.text,
           font: {
             size: 14
           },
@@ -258,9 +257,9 @@ const getChartOptions = () => {
         titleColor: colors.tooltipText,
         bodyColor: colors.tooltipText,
         padding: 10,
-        cornerRadius: 4,
+        cornerRadius: 0,
         mode: isPieChart ? 'point' : 'index',
-        intersect: false,
+        intersect: true,
         callbacks: isPieChart ? {
           label: (context) => {
             const label = context.label || ''
@@ -270,9 +269,8 @@ const getChartOptions = () => {
             return `${label}: ${value} (${percentage}%)`
           }
         } : undefined,
-        // Добавляем цвет точки в тултип
         displayColors: true,
-        usePointStyle: true
+        usePointStyle: false
       }
     },
     scales: !isPieChart ? {
@@ -313,11 +311,11 @@ const getChartOptions = () => {
       }
     } : undefined,
     animation: {
-      duration: 300
+      duration: 0
     },
     elements: {
       line: {
-        tension: isLineChart ? 0.4 : 0
+        tension: 0
       },
       bar: {
         borderRadius: 4

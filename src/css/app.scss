@@ -126,6 +126,7 @@ body {
 .pp-tooltip {
   background-color: var(--q-primary);
   color: var(--text-color-dark);
+  border: solid var(--text-color-dark) 1px;
   border-radius: 0;
 }
 .pp-tooltip.dark {

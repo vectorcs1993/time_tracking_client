@@ -15,16 +15,38 @@
         </div>
         <q-space />
         <Button icon="sync" label="Обновить" color="green" @click="createReport" :dark="props.dark" />
-        <InputDate label="от" with-time v-model="inputFilter.dateStart" :dark="props.dark"
-          @update:model-value="updateInputFilter(createReport)" style="width: 200px;" />
-        <InputDate label="до" with-time v-model="inputFilter.dateFinish" :dark="props.dark"
-          @update:model-value="updateInputFilter(createReport)" style="width: 200px;" />
+        <!-- Фильтр период -->
+        <InputSelect label="Период" :options="props.authStore.getTypesPeriod" v-model="inputFilter.period"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 250px;" />
+        <InputDate label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart" :dark="props.dark"
+          @update:model-value="updateInputFilter" style="width: 200px;" />
+        <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish" :dark="props.dark"
+          @update:model-value="updateInputFilter" style="width: 200px;" />
+        <TTCheckbox
+          :disable="inputFilter.dateStart === 'null' || !inputFilter.dateStart || inputFilter.dateFinish === 'null' || !inputFilter.dateFinish"
+          label="Предыдущий период" v-model="inputFilter.previous" @update:model-value="updateInputFilter"
+          :dark="props.dark">
+          <TTTooltip>
+            В отчёт добавятся дополнительные колонки с данными по аналогичному по продолжительности предшествующему
+            периоду, данные колонки будут помечены символом - "*"
+          </TTTooltip>
+        </TTCheckbox>
         <Button :dark="props.dark" label="Изменить" icon="edit"
           @click="() => router.push(`/configurations/report/${curentConfig.id}`)" />
       </q-card-actions>
     </template>
     <template v-slot:pagination>
       <div class="row q-gutter-sm items-center">
+        <InputSelect v-if="selected.length > 0" label="Тип построения данных" v-model="inputFilter.typeBuild"
+          :options="types_builds" :dark="props.dark" style="width: 200px;" @update:model-value="() => {
+            const prevSelect = selected[0];
+            updateInputFilter();
+          }" />
+        <InputSelect v-if="selected.length > 0" label="Кол-во точек, шт" v-model="inputFilter.points"
+          :options="types_points" :dark="props.dark" style="width: 150px;" @update:model-value="() => {
+            const prevSelect = selected[0];
+            updateInputFilter();
+          }" />
         <Button v-if="rows.length > 0" label="Экспорт" @click="exportReport" :dark="props.dark" />
         <div class="text-size">{{ returnSelectedInfo() }}</div>
       </div>
@@ -37,10 +59,8 @@
     </template>
     <template v-slot:body-cell="props">
       <q-td :props="props" style="padding: 0;">
-        <div class="text-size fit" :style="`
-    background-color: ${props.col.color_bg};
-    color: ${authStore.getContrastColor(props.col.color_bg)};
-  `">
+        <div class="text-size fit"
+          :style="` background-color: ${props.col.color_bg}; color: ${authStore.getContrastColor(props.col.color_bg)};`">
           {{ props.value }}
         </div>
       </q-td>
@@ -62,38 +82,45 @@
       </q-tr>
     </template>
   </q-table>
-  <div v-if="dataset.length > 0" class="row full-width justify-center">
-    <TTChart class="fit" v-if="selected.length > 0 && chartDataIndividual.datasets.length > 0"
-      :label="`График продуктивности ${selected[0].main}`" chartType="line" v-model:data="chartDataIndividual"
-      :dark="props.dark">
-      <template v-slot:actions>
-        <InputSelect v-if="selected.length > 0" label="Тип построения данных" v-model="inputFilter.typeBuild"
-          :options="types_builds" :dark="props.dark" style="width: 200px;" @update:model-value="() => {
-            const prevSelect = selected[0];
-            updateInputFilter(createReport(() => selectRow(null, prevSelect)));
-          }" />
-        <InputSelect v-if="selected.length > 0" label="Кол-во точек, шт" v-model="inputFilter.points"
-          :options="types_points" :dark="props.dark" style="width: 150px;" @update:model-value="() => {
-            const prevSelect = selected[0];
-            updateInputFilter(createReport(() => selectRow(null, prevSelect)));
-          }" />
-      </template>
-    </TTChart>
-  </div>
-  <div v-if="dataset.length > 0" class="row full-width justify-center">
-    <TTChart v-if="chartDataMetricCount.datasets.length > 0" label="Показатель загрузки по количеству задач"
-      chartType="bar" v-model:data="chartDataMetricCount" :dark="props.dark" />
-    <TTChart v-if="chartDataMetricTime.datasets.length > 0" label="Показатель загрузки по временным метрикам"
-      chartType="bar" v-model:data="chartDataMetricTime" :dark="props.dark" />
-    <TTChart v-if="chartDataMetricCountBox.datasets.length > 0" label="Показатель загрузки по количеству продукции"
-      chartType="bar" v-model:data="chartDataMetricCountBox" :dark="props.dark" />
+  <div>
+    <div class="row full-width justify-center">
+      <TTChart class="col" v-if="chartDataMetricCount.datasets.length > 0"
+        label="Показатель продуктивности по количеству задач" chartType="bar" v-model:data="chartDataMetricCount"
+        :dark="props.dark" />
+      <TTChart class="col" v-if="selected.length > 0 && chartDataIndividualCount.datasets.length > 0"
+        :label="`График продуктивности по количеству задач ${selected[0].main}`" chartType="line"
+        v-model:data="chartDataIndividualCount" :dark="props.dark">
+        <template v-slot:actions>
+        </template>
+      </TTChart>
+    </div>
+    <div class="row full-width justify-center">
+      <TTChart class="col" v-if="chartDataMetricTime.datasets.length > 0"
+        label="Показатель загрузки по временным метрикам" chartType="bar" v-model:data="chartDataMetricTime"
+        :dark="props.dark" />
+      <TTChart class="col" v-if="selected.length > 0 && chartDataIndividualTime.datasets.length > 0"
+        :label="`График загрузки по временным метрикам ${selected[0].main}`" chartType="line"
+        v-model:data="chartDataIndividualTime" :dark="props.dark">
+        <template v-slot:actions>
+        </template>
+      </TTChart>
+    </div>
+    <div class="row full-width justify-center">
+      <TTChart class="col" v-if="chartDataMetricCountBox.datasets.length > 0" label="Показатель количества продукции"
+        chartType="bar" v-model:data="chartDataMetricCountBox" :dark="props.dark" />
+      <TTChart class="col" v-if="selected.length > 0 && chartDataIndividualCountBox.datasets.length > 0"
+        :label="`График по количеству продукции ${selected[0].main}`" chartType="line"
+        v-model:data="chartDataIndividualCountBox" :dark="props.dark">
+        <template v-slot:actions>
+        </template>
+      </TTChart>
+    </div>
   </div>
 </template>
 <script setup>
 import {
   onMounted,
   ref,
-  defineProps,
 } from 'vue';
 import { date } from 'quasar';
 import { useRouter, useRoute } from 'vue-router';
@@ -101,8 +128,9 @@ import Button from 'src/components/InputButton.vue';
 import InputDate from 'src/components/InputDate.vue';
 import TTCheckbox from 'src/components/InputCheckbox.vue';
 import moment from 'moment/moment';
-import TTChart from './TTChart.vue';
+import TTChart from '../../../components/TTChart.vue';
 import InputSelect from 'src/components/InputSelect.vue';
+import TTTooltip from 'src/components/TTTooltip.vue';
 
 document.title = 'Отчёты';
 const router = useRouter();
@@ -117,6 +145,7 @@ const props = defineProps({
 });
 
 const columns = ref([]);
+const columnsOriginal = ref([]);
 const rows = ref([]);
 const total = ref({});
 const description = ref('');
@@ -132,16 +161,21 @@ const curentConfig = ref();
 const types_points = [
   {
     id: 0,
+    name: '5',
+    val: 5,
+  },
+  {
+    id: 1,
     name: '7',
     val: 7,
   },
   {
-    id: 1,
+    id: 2,
     name: '12',
     val: 12,
   },
   {
-    id: 2,
+    id: 3,
     name: '30',
     val: 30,
   }
@@ -159,10 +193,12 @@ const types_builds = [
   },
 ]
 const inputFilter = ref({
+  period: props.authStore.getTypesPeriod[0],
   dateStart: moment().subtract(7, 'days').format('YYYY-MM-DD'),
   dateFinish: moment().format('YYYY-MM-DD'),
   points: types_points[0],
   typeBuild: types_builds[0],
+  previous: false,
 });
 function selectRow(event, row) {
   selected.value.length = 0;
@@ -177,10 +213,21 @@ function isAllowView(val) {
   }
 }
 const dataset = ref([]);
-const chartDataIndividual = ref({
+const chartDataIndividualCount = ref({
   labels: [],
   datasets: [],
 });
+
+const chartDataIndividualTime = ref({
+  labels: [],
+  datasets: [],
+});
+
+const chartDataIndividualCountBox = ref({
+  labels: [],
+  datasets: [],
+});
+
 const chartDataMetricCount = ref({
   labels: [],
   datasets: [],
@@ -196,32 +243,95 @@ const chartDataMetricCountBox = ref({
 function updateSelect(sel) {
   if (sel[0]) {
     const select = sel[0];
-    const columnsIndividual = columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart);
-    chartDataIndividual.value = {
-      labels: dataset.value.map((ds, i) => { // Значения по оси X
-        let val = ds.to;
-        if (i === 0) val = ds.from;
-        const parsedDate = new Date(val);
-        return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
-      }),
-      datasets: columnsIndividual.map((ci) => {
-        return {
-          label: ci.label,
-          data: dataset.value.map((ds) => {
-            const rows = ds.data.rows.find((d) => d.id === select.id);
-            return rows;
-          }).map((ds) => ds[ci.name]),
-          color: ci.color_bg || undefined,
-        }
-      })
-    }
+    props.authStore.authorizedRequest('get', `report_timeline_build?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}&type=${inputFilter.value.typeBuild.val}&points=${inputFilter.value.points.val}`).then((respDS) => {
+      dataset.value.length = 0;
+      dataset.value.push(...respDS.data);
+      chartDataIndividualCount.value = {
+        labels: dataset.value.map((ds, i) => { // Значения по оси X
+          let val = ds.to;
+          if (i === 0) val = ds.from;
+          const parsedDate = new Date(val);
+          return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
+        }),
+        datasets: columnsOriginal.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart).map((ci) => {
+          return {
+            label: ci.label,
+            data: dataset.value.map((ds) => {
+              const rows = ds.data.rows.find((d) => d.id === select.id);
+              return rows;
+            }).map((ds) => ds[ci.name]),
+            color: ci.color_bg || undefined,
+          }
+        })
+      }
+
+      chartDataIndividualTime.value = {
+        labels: dataset.value.map((ds, i) => { // Значения по оси X
+          let val = ds.to;
+          if (i === 0) val = ds.from;
+          const parsedDate = new Date(val);
+          return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
+        }),
+        datasets: columnsOriginal.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_TIME && col.forChart).map((ci) => {
+          return {
+            label: ci.label,
+            data: dataset.value.map((ds) => {
+              const rows = ds.data.rows.find((d) => d.id === select.id);
+              return rows;
+            }).map((ds) => ds[ci.name]),
+            color: ci.color_bg || undefined,
+          }
+        })
+      }
+
+      chartDataIndividualCountBox.value = {
+        labels: dataset.value.map((ds, i) => { // Значения по оси X
+          let val = ds.to;
+          if (i === 0) val = ds.from;
+          const parsedDate = new Date(val);
+          return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
+        }),
+        datasets: columnsOriginal.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT_BOX && col.forChart).map((ci) => {
+          return {
+            label: ci.label,
+            data: dataset.value.map((ds) => {
+              const rows = ds.data.rows.find((d) => d.id === select.id);
+              return rows;
+            }).map((ds) => ds[ci.name]),
+            color: ci.color_bg || undefined,
+          }
+        })
+      }
+    });
   } else {
-    chartDataIndividual.value.datasets.length = 0;
-    chartDataIndividual.value.labels.length = 0;
+    chartDataIndividualCount.value.datasets.length = 0;
+    chartDataIndividualCount.value.labels.length = 0;
+    chartDataIndividualTime.value.datasets.length = 0;
+    chartDataIndividualTime.value.labels.length = 0;
+    chartDataIndividualCountBox.value.datasets.length = 0;
+    chartDataIndividualCountBox.value.labels.length = 0;
   }
 }
 function update(callback) {
   load.value = true;
+  if (localStorage.getItem('report_filter_period')) {
+    inputFilter.value.period = props.authStore.getTypesPeriod.find((tp) => tp.id === props.authStore.getItem('report_filter_period'));
+    if (!inputFilter.value.period) {
+      [inputFilter.value.period] = props.authStore.getTypesPeriod;
+    }
+  }
+  if (localStorage.getItem('report_filter_date_start')) {
+    inputFilter.value.dateStart = localStorage.getItem('report_filter_date_start');
+  }
+  if (localStorage.getItem('report_filter_date_finish')) {
+    inputFilter.value.dateFinish = localStorage.getItem('report_filter_date_finish');
+  }
+  if (localStorage.getItem('report_filter_points')) {
+    inputFilter.value.points = types_points.find((tp) => tp.id === Number(localStorage.getItem('report_filter_points')));
+  }
+  if (localStorage.getItem('report_filter_previous')) {
+    inputFilter.value.previous = localStorage.getItem('report_filter_previous') === 'true';
+  }
   // извлечение конфигурации таблицы
   props.authStore.authorizedRequest('get', `reports/${id}`).then((respConf) => {
     const conf = respConf.data[0];
@@ -230,27 +340,47 @@ function update(callback) {
     conf.cols = JSON.parse(conf.cols);
     curentConfig.value = conf;
     load.value = false;
-    if (callback) {
-      if (typeof callback === 'function') {
-        callback();
-      }
-    }
+    createReport(callback);
   });
 }
 
 function createReport(callback) {
-  selected.value.length = 0;
-  dataset.value.length = 0;
-  rows.value.length = 0;
-  total.value = undefined;
   load.value = true;
-  props.authStore.authorizedRequest('get', `report_build?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}&type=${inputFilter.value.typeBuild.val}&points=${inputFilter.value.points.val}`).then((resp) => {
-    const general = resp.data.find((ds) => ds.isGeneral === true);
-    columns.value = general.data.columns;
-    total.value = general.data.total;
-    rows.value.push(...general.data.rows);
-    dataset.value = resp.data.filter((ds) => !ds.isGeneral);
-    console.log(dataset.value);
+  const period = props.authStore.getDatePeriod(inputFilter.value.period.id, inputFilter.value.dateStart, inputFilter.value.dateFinish);
+  [inputFilter.value.dateStart, inputFilter.value.dateFinish] = period;
+  props.authStore.authorizedRequest('get', `report_build?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}&previous=${inputFilter.value.previous ? 1 : 0}`).then((respRP) => {
+    const { original, previous } = respRP.data;
+    columns.value.length = 0;
+    columnsOriginal.value.length = 0;
+    columnsOriginal.value.push(...original.columns);
+    original.columns.forEach((col, i) => {
+      if (previous) {
+        const prevCol = previous.columns[i];
+        prevCol.name = `${col.name}_`;
+        prevCol.field = `${col.field}_`;
+        prevCol.label = `${col.label}*`;
+        if (col.name === 'main') columns.value.push(col)
+        else columns.value.push(...[col, prevCol]);
+      } else columns.value.push(col)
+    });
+    total.value = undefined;
+    total.value = original.total;
+
+    rows.value.length = 0;
+    original.rows.forEach((row, i) => {
+      if (previous) {
+        previous.columns.forEach((colPrev, ic) => {
+          row[colPrev.name] = previous.rows[i][original.columns[ic].name];
+        });
+      }
+      rows.value.push(row);
+    });
+    if (previous) {
+      previous.columns.forEach((colPrev, ic) => {
+        total.value[colPrev.name] = previous.total[original.columns[ic].name];
+      });
+    }
+    console.log(total);
 
     load.value = false;
     chartDataMetricCount.value = {
@@ -312,35 +442,31 @@ function exportReport() {
   });
 }
 
-function updateInputFilter(callback) {
+function saveForLocalStorage() {
   localStorage.setItem('report_filter_date_start', inputFilter.value.dateStart);
   localStorage.setItem('report_filter_date_finish', inputFilter.value.dateFinish);
   localStorage.setItem('report_filter_points', inputFilter.value.points.id);
-  selected.value.length = 0;
-  rows.value.length = 0;
-  total.value = undefined;
-  update(callback);
+  localStorage.setItem('report_filter_period', inputFilter.value.period.id);
+  if (inputFilter.value.dateStart === null || inputFilter.value.dateFinish === null) inputFilter.value.previous = false;
+  localStorage.setItem('report_filter_previous', inputFilter.value.previous);
+}
+
+function updateInputFilter() {
+  saveForLocalStorage();
+  createReport();
+  updateSelect(selected.value);
 }
 function returnSelectedInfo() {
   return `Всего объектов: ${rows.value.length}`;
 }
 onMounted(() => {
-  if (localStorage.getItem('report_filter_date_start')) {
-    inputFilter.value.dateStart = localStorage.getItem('report_filter_date_start');
-  }
-  if (localStorage.getItem('report_filter_date_finish')) {
-    inputFilter.value.dateFinish = localStorage.getItem('report_filter_date_finish');
-  }
-  if (localStorage.getItem('report_filter_points')) {
-    inputFilter.value.points = types_points.find((tp) => tp.id === Number(localStorage.getItem('report_filter_points')));
-  }
   branches.value.length = 0;
   props.authStore.authorizedRequest('get', `branches`).then((respB) => {
     branches.value.push(...respB.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
     users.value.length = 0;
     props.authStore.authorizedRequest('get', `users`).then((respU) => {
       users.value.push(...respU.data.sort((a, b) => (a.name < b.name ? -1 : 1)));
-      update(createReport);
+      update();
     });
   });
 });

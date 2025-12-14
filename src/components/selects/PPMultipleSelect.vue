@@ -19,9 +19,9 @@
   </q-select>
 </template>
 <script setup>
-import { defineProps, defineModel } from 'vue';
 
 const model = defineModel();
+
 const props = defineProps({
   dark: Boolean,
 });

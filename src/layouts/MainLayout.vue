@@ -23,20 +23,15 @@
                     <div>
                       Роль:
                     </div>
-                    <q-badge :color="dark ? 'grey-7' : 'green'">{{ authStore.getUser.role }}</q-badge>
+                    <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getRole.name
+                    }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div>
-                      Подразделение:
+                      Группа:
                     </div>
-                    <q-badge :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name }}</q-badge>
-                  </div>
-                  <div class="row justify-between items-center">
-                    <div class="col">
-                      Размер шрифта:
-                    </div>
-                    <q-slider class="col" v-model="currentTextSize" :min="12" :max="24" :step="1" snap label
-                      :color="dark ? 'orange' : 'green'" @update:model-value="updateTextSize" />
+                    <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name
+                      }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div class="col">
@@ -106,7 +101,6 @@ import {
   onBeforeUnmount,
   watch,
 } from 'vue';
-// import { useQuasar } from 'quasar';
 import DialogError from 'src/components/dialogs/error.vue';
 import DialogConfirm from 'src/components/dialogs/confirm.vue';
 import Button from 'src/components/InputButton.vue';
@@ -130,45 +124,56 @@ const di = ref(null);
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-const mainPage = {
-  label: 'Главная',
-  icon: 'home',
-  to: '/home',
+
+const routeDisplayConfig = {
+  '/home': { label: 'Главная', icon: 'home' },
+  '/tables': { label: 'Таблицы', icon: 'view_list' },
+  '/reports': { label: 'Отчёты', icon: 'insert_chart_outlined' },
+  '/projects': { label: 'Проекты', icon: 'co_present' },
+  '/activities': { label: 'Виды активности', icon: 'flash_on' },
+  '/sources': { label: 'Источники поступления', icon: 'announcement' },
+  '/users': { label: 'Пользователи', icon: 'people' },
+  '/branches': { label: 'Группы пользователей', icon: 'diversity_3' },
+  '/daily_reports': { label: 'Ежедневник', icon: 'event_repeat' },
+  '/login': { label: 'Вход', icon: 'person' }
 };
-const routes = [
-  mainPage,
-  {
-    icon: 'view_list',
-    label: 'Таблицы',
-    to: '/tables',
-  },
-  {
-    icon: 'article',
-    label: 'Отчёты',
-    to: '/reports',
-  },
-  {
-    icon: 'co_present',
-    label: 'Проекты',
-    to: '/projects',
-  },
-  {
-    icon: 'flash_on',
-    label: 'Виды активности',
-    to: '/activities',
-  },
-  {
-    icon: 'announcement',
-    label: 'Источники поступления',
-    to: '/sources',
-  },
-];
-// const $q = useQuasar();
-const menuList = computed(() => authStore.isAuthenticated ? routes : [mainPage, {
-  icon: 'person',
-  label: 'Вход',
-  to: '/login',
-}]);
+
+// Основное вычисляемое свойство для меню
+const menuList = computed(() => {
+  const routes = router.getRoutes();
+  const userRole = authStore.getUser?.role;
+
+  const filteredRoutes = routes.filter(route => {
+    // Пропускаем неосновные маршруты
+    if (!routeDisplayConfig[route.path]) return false;
+
+    if (route.path === '/login' && authStore.isAuthenticated) {
+      return false;
+    }
+
+    // Для неавторизованных
+    if (!authStore.isAuthenticated) {
+      return !route.meta?.requiresAuth;
+    }
+
+    // Для авторизованных
+    if (route.meta?.requiresAuth) {
+      if (route.meta.allowedRoles?.length > 0) {
+        return route.meta.allowedRoles.includes(userRole);
+      }
+      return true;
+    }
+
+    return true;
+  });
+
+  // Преобразуем в формат для меню
+  return filteredRoutes.map(route => ({
+    ...routeDisplayConfig[route.path],
+    to: route.path
+  }));
+});
+
 const leftDrawerOpen = ref(true);
 const miniState = ref(true);
 const version = ref(packageInfo.version);
@@ -239,7 +244,7 @@ function logout() {
   });
 }
 function getTitlePage() {
-  const a = routes.find((r) => r.to === route.path);
+  const a = menuList.value.find((r) => r.to === route.path);
   if (a) return `/ ${a.label}`;
   return '';
 }

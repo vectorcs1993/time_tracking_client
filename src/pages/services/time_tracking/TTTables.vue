@@ -1,10 +1,34 @@
 <template>
   <q-table :class="`${props.dark ? 'pp-dark' : 'pp-light'} fix-table cursor-pointer q-pa-none q-ma-none text-size`"
-    square :dark="props.dark" dense flat wrap-cells :rows="rows" :columns="columns" row-key="id" virtual-scroll
-    :hide-selected-banner="true" selection="single" :loading="load" color="orange" binary-state-sort
-    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header
-    no-data-label="Нет данных" :filter="filter" v-model:selected="selected" @row-click="selectRow"
-    @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
+    square :dark="props.dark" dense flat wrap-cells :rows="rows" :columns="[
+      {
+        name: 'name',
+        label: 'Наименование',
+        align: 'left',
+        field: 'name',
+        sortable: true,
+      },
+      {
+        name: 'branch',
+        label: 'Группа',
+        align: 'center',
+        sortable: true,
+        field: (row) => (row.filter_branch ? row.filter_branch.name : ''),
+        edit: false,
+        type: 'selector',
+        options: () => type_branches,
+        style: 'min-width: 170px; max-width: 170px;',
+      },
+      {
+        name: 'description',
+        label: 'Комментарий',
+        align: 'center',
+        field: 'description',
+      },
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :loading="load" color="orange"
+    binary-state-sort :hide-pagination="false" v-model:pagination="pagination" separator="cell"
+    :rows-per-page-options="[1]" grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected"
+    @row-click="selectRow" @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
         <Button :dark="props.dark" icon="add" label="Новая таблица" @click="() => {
@@ -69,15 +93,15 @@
 import {
   onMounted,
   ref,
-  defineProps,
 } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'src/components/InputButton.vue';
 import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
 import TTCheckbox from 'src/components/InputCheckbox.vue';
 import InputSearch from 'src/components/InputSearch.vue';
+import { OPTION_ALL } from './fun';
 
-document.title = 'Настройки таблиц';
+document.title = 'Выбор таблицы';
 
 const props = defineProps({
   showError: Function,
@@ -93,6 +117,7 @@ const rows = ref([]);
 const filter = ref('');
 const selected = ref([]);
 const dialogAdd = ref(false);
+const type_branches = ref([]);
 
 const modelInput = ref({
   name: '',
@@ -100,21 +125,6 @@ const modelInput = ref({
 const pagination = ref({
   rowsPerPage: 0,
 });
-const columns = ref([
-  {
-    name: 'name',
-    label: 'Наименование',
-    align: 'left',
-    field: 'name',
-    sortable: true,
-  },
-  {
-    name: 'description',
-    label: 'Комментарий',
-    align: 'center',
-    field: 'description',
-  },
-]);
 function isAllowView(val) {
   try {
     return val.allow_views.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
@@ -131,6 +141,7 @@ function update() {
       return {
         ...c,
         allow_views: JSON.parse(c.allow_views),
+        filter_branch: type_branches.value.find((b) => b.id === c.filter_branch),
       };
     }).filter((c) => isAllowView(c)));
     load.value = false;
@@ -159,6 +170,11 @@ function remove() {
   });
 }
 onMounted(() => {
-  update();
+  type_branches.value.length = 0;
+  type_branches.value.push(OPTION_ALL);
+  props.authStore.authorizedRequest('get', `branches`).then((respBR) => {
+    type_branches.value.push(...respBR.data);
+    update();
+  });
 });
 </script>

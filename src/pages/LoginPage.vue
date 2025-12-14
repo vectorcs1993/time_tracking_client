@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, onMounted, onUnmounted, } from 'vue';
+import { ref, onMounted, onUnmounted, } from 'vue';
 import { useAuthStore } from 'src/stores/store.js';
 import Button from 'src/components/InputButton.vue';
 import TTInputSingle from 'src/components/InputText.vue';

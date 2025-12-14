@@ -72,7 +72,6 @@
 <script setup>
 import {
   ref,
-  defineProps,
   onMounted,
 } from 'vue';
 import PPDialog from 'src/components/PPDialog.vue';

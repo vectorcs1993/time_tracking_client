@@ -9,6 +9,10 @@ export const OPTION_ALL = {
   id: -1,
   name: 'Все',
 };
+export const OPTION_NONE = {
+  id: -1,
+  name: '-',
+};
 export function getNameShort(_name) {
   try {
     const n = _name.split(' ').filter((e) => e !== '');

@@ -1,5 +1,4 @@
 <template>
-  <!-- Таблица -->
   <q-table v-if="isAllowView(curentConfig)" ref="table" dense
     :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
     :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
@@ -25,10 +24,9 @@
         <Button label="Удалить" v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
           props.showConfirm('Удалить записи?', actionDelete);
         }" :dark="props.dark" />
-        <!-- Фильтр подразделения -->
-        <InputSelect v-if="inputFilter.on" label="Подразделение" v-model="inputFilter.branch"
-          :options="inputFilter.branches" @update:model-value="updateInputFilter" :dark="props.dark"
-          style="width: 150px" />
+        <!-- Фильтр группы -->
+        <InputSelect v-if="inputFilter.on" label="Группа" v-model="inputFilter.branch" :options="inputFilter.branches"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 150px" />
         <!-- Пользовательский Фильтр сотрудники -->
         <InputSelect label="Сотрудник" v-model="inputFilter.user" :options="inputFilter.usersOnlyBranch"
           @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
@@ -46,8 +44,8 @@
             updateInputFilter();
           }" :dark="props.dark" style="width: 200px;" />
         <!-- Фильтр период -->
-        <InputSelect label="Период" :options="type_period" v-model="inputFilter.period"
-          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
+        <InputSelect label="Период" :options="props.authStore.getTypesPeriod" v-model="inputFilter.period"
+          @update:model-value="updateInputFilter" :dark="props.dark" style="width: 250px;" />
         <InputDate label="от" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateStart"
           @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
         <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
@@ -80,11 +78,13 @@
     </template>
     <template v-slot:body-cell="props">
       <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
-        <div class="text-size q-pa-sm row fit justify-center items-center editable-cell"
-          style="white-space: pre-wrap; min-height: 48px;" @click="openEditPopup(props)">
+        <div class="text-size q-pa-sm row fit justify-center items-center"
+          style="white-space: pre-wrap; min-height: 48px;">
           <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
             <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
-              :dark="props.dark" />
+              :dark="props.dark" @update:model-value="(val) => {
+                save(props.row.id, props.col.name, val);
+              }" />
           </span>
           <span v-else-if="props.col.type == 'selector' && isAllowEdit(props.row.id, props.col.name)">
             <InputSelect v-if="activeRowId === props.row.id" cell v-model="props.row[props.col.name]"
@@ -133,7 +133,6 @@
 <script setup>
 import {
   ref,
-  defineProps,
   onMounted,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -195,39 +194,10 @@ const type_sorts = [
     name: 'Сначала старые',
   },
 ];
-const type_period = [
-  {
-    id: 0,
-    name: 'Выбрать период',
-  },
-  {
-    id: 1,
-    name: 'Сегодня',
-  },
-  {
-    id: 3,
-    name: 'Вчера',
-  },
-  {
-    id: 4,
-    name: 'Последние 7 дней',
-  },
-  {
-    id: 5,
-    name: 'Последние 30 дней',
-  },
-  {
-    id: 6,
-    name: 'Последние 180 дней',
-  },
-  {
-    id: 2,
-    name: 'Все данные',
-  },
-];
+
 const inputFilter = ref({
   on: true,
-  period: type_period[0],
+  period: props.authStore.getTypesPeriod[0],
   search: '',
   user: undefined,
   users: [],
@@ -376,7 +346,7 @@ const columnsPerm = [
   },
   {
     name: 'branch',
-    label: 'Подразделение',
+    label: 'Группа',
     align: 'center',
     sortable: true,
     field: (row) => row.branch.name,
@@ -593,31 +563,11 @@ function getItem(val) {
 function requestRecords(callback) {
   load.value = true;
   records.value.length = 0;
-  const day = moment();
-  const yesterday = day.clone().subtract(1, 'days');
-  const yesterday7 = day.clone().subtract(7, 'days');
-  const yesterday30 = day.clone().subtract(30, 'days');
-  const yesterday180 = day.clone().subtract(180, 'days');
-  // дата старта и финиша - сегодня
-  if (inputFilter.value.period.id === 1) {
-    inputFilter.value.dateStart = day.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
-  } else if (inputFilter.value.period.id === 3) { // вчера
-    inputFilter.value.dateStart = yesterday.format(datetimeFormat);
-    inputFilter.value.dateFinish = yesterday.format(datetimeFormat);
-  } else if (inputFilter.value.period.id === 4) { // 7 дней
-    inputFilter.value.dateStart = yesterday7.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
-  } else if (inputFilter.value.period.id === 5) { // 30 дней
-    inputFilter.value.dateStart = yesterday30.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
-  } else if (inputFilter.value.period.id === 6) { // 180 дней
-    inputFilter.value.dateStart = yesterday180.format(datetimeFormat);
-    inputFilter.value.dateFinish = day.format(datetimeFormat);
-  } else if (inputFilter.value.period.id === 2) { // все данные
-    inputFilter.value.dateStart = 'null';
-    inputFilter.value.dateFinish = 'null';
-  }
+
+  const period = props.authStore.getDatePeriod(inputFilter.value.period.id, inputFilter.value.dateStart, inputFilter.value.dateFinish);
+  [inputFilter.value.dateStart, inputFilter.value.dateFinish] = period;
+
+  console.log(period, inputFilter.value);
 
   props.authStore.authorizedRequest('get', `/records?order=${inputFilter.value.sorted.id
     }&branch=${inputFilter.value.branch.id
@@ -666,9 +616,9 @@ function update(callback) {
       inputFilter.value.search = localStorage.getItem('filter_search');
     }
     if (localStorage.getItem('filter_period')) {
-      inputFilter.value.period = getObject(type_period, getItem('filter_period'));
+      inputFilter.value.period = getObject(props.authStore.getTypesPeriod, getItem('filter_period'));
       if (!inputFilter.value.period) {
-        [inputFilter.value.period] = type_period;
+        [inputFilter.value.period] = props.authStore.getTypesPeriod;
       }
     }
     if (localStorage.getItem('filter_date_start')) {
@@ -769,7 +719,7 @@ function actionCreate() {
   localStorage.setItem('filter_date_finish', date);
 
   if (!isDateInRange(date, inputFilter.value.dateStart, inputFilter.value.dateFinish) && inputFilter.value.period.id !== 2) {
-    [, inputFilter.value.period] = type_period;
+    [, inputFilter.value.period] = props.authStore.getTypesPeriod;
   }
 
   localStorage.setItem('filter_period', inputFilter.value.period.id);
@@ -801,31 +751,6 @@ function actionCreate() {
     console.log(err);
     props.showInfo('Ошибка создания записи');
   });
-}
-const editPopup = ref({
-  show: false,
-  row: null,
-  col: null,
-  value: null,
-  type: '',
-  options: []
-});
-function openEditPopup(props) {
-  if (!isAllowEdit(props.row.id, props.col.name)
-    || props.col.type === 'checkbox'
-    || props.col.type === 'number'
-    || props.col.type === 'text'
-    || props.col.type === 'textarea'
-    || props.col.type === 'selector' || props.col.type === 'date') return;
-
-  editPopup.value = {
-    show: true,
-    row: props.row,
-    col: props.col,
-    value: props.row[props.col.name],
-    type: props.col.type,
-    options: props.col.options ? props.col.options(props.row) : []
-  }
 }
 function actionCopy() {
   const date = moment().format(datetimeFormat);

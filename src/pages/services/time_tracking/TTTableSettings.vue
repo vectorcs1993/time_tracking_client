@@ -24,8 +24,8 @@
           <Checkbox v-model="config.deleteOnlySome" label="Удалять только свои" :dark="props.dark" />
           <Checkbox v-model="config.changeOnlySome" label="Изменять только свои" :dark="props.dark" />
         </div>
-        <InputSelect label="Фильтр подразделение" v-model="config.filter_branch" :options="branches_mod"
-          :dark="props.dark" style="width: 100%;" />
+        <InputSelect label="Фильтр группы" v-model="config.filter_branch" :options="branches_mod" :dark="props.dark"
+          style="width: 100%;" />
         <InputSelect label="Фильтр тип работы" v-model="config.filter_type_work" :options="type_works_mod"
           :dark="props.dark" style="width: 100%;" @update:model-value="(val) => {
             if (val.id === OPTION_ALL.id) config.filter_type_activity = type_activities_mod[0];
@@ -162,7 +162,6 @@
 import {
   onMounted,
   ref,
-  defineProps,
   watch,
   nextTick,
 } from 'vue';

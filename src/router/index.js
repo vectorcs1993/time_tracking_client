@@ -37,12 +37,18 @@ export default defineRouter(function (/* { store, ssrContext } */) {
             await authStore.fetchUser();
           } catch (err) {
             console.log('Router guard - fetchUser failed:', err);
-            // Используем forceLogout вместо прямого вызова API
             authStore.forceLogout()
             next('/login');
             return;
           }
         }
+
+        // Всегда проверяем права на маршрут
+        if (!authStore.isAllowRoute(to.meta.allowedRoles)) {
+          next('/access-denied');  // Всегда на страницу ошибки прав при отсутствии прав
+          return;
+        }
+
         next();
       } else {
         next('/login');

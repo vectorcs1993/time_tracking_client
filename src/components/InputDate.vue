@@ -1,44 +1,41 @@
 <template>
   <q-input dense square v-model="displayValue" readonly class="q-pa-none"
-    :input-style="`text-align: ${cell ? 'center' : 'start'};`" :dark="props.dark" hide-bottom-space
+    :input-style="`text-align: ${cell ? 'center' : 'start'};`" :range :dark="props.dark" hide-bottom-space
     :standout="!cell ? `${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}` : false" :borderless="cell"
-    :placeholder="placeholder" :clearable="!cell" fill-mask :mask="mask">
+    :placeholder="placeholder" :clearable="!cell" fill-mask :mask="mask" @clear="handleClear">
 
     <template v-slot:append>
-      <div class="row no-wrap items-center q-gutter-xs">
+      <!-- Кнопка даты -->
+      <q-icon name="event" class="cursor-pointer q-pa-none" size="sm">
+        <q-popup-proxy square transition-show="scale" transition-hide="scale" style="overflow-y: hidden;">
+          <q-date square v-model="internalDate" :dark="props.dark" @update:model-value="handleDateUpdate">
+            <div class="row items-center justify-end q-gutter-xs">
+              <InputButton label="Сегодня" @click="setToday" :dark="props.dark" />
+              <InputButton v-close-popup label="Закрыть" :dark="props.dark" />
+            </div>
+          </q-date>
+        </q-popup-proxy>
+      </q-icon>
 
-        <!-- Кнопка даты -->
-        <q-icon name="event" class="cursor-pointer q-pa-none" size="sm">
-          <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-            <q-date v-model="internalDate" :dark="props.dark">
+      <!-- Кнопка времени (если включена) -->
+      <template v-if="withTime">
+        <q-icon name="access_time" class="cursor-pointer q-pa-none" size="sm">
+          <q-popup-proxy square transition-show="scale" transition-hide="scale">
+            <q-time square="" v-model="internalTime" :dark="props.dark" format24h now-btn>
               <div class="row items-center justify-end q-gutter-xs">
-                <InputButton label="Сегодня" @click="setToday" :dark="props.dark" />
+                <InputButton label="Сейчас" @click="setCurrentTime" :dark="props.dark" />
                 <InputButton v-close-popup label="Закрыть" :dark="props.dark" />
               </div>
-            </q-date>
+            </q-time>
           </q-popup-proxy>
         </q-icon>
-
-        <!-- Кнопка времени (если включена) -->
-        <template v-if="withTime">
-          <q-icon name="access_time" class="cursor-pointer q-pa-none" size="sm">
-            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-              <q-time v-model="internalTime" :dark="props.dark" format24h now-btn>
-                <div class="row items-center justify-end q-gutter-xs">
-                  <InputButton label="Сейчас" @click="setCurrentTime" :dark="props.dark" />
-                  <InputButton v-close-popup label="Закрыть" :dark="props.dark" />
-                </div>
-              </q-time>
-            </q-popup-proxy>
-          </q-icon>
-        </template>
-      </div>
+      </template>
     </template>
   </q-input>
 </template>
 
 <script setup>
-import { defineProps, defineModel, computed } from 'vue';
+import { computed, watch } from 'vue';
 import { date } from 'quasar';
 import InputButton from './InputButton.vue';
 
@@ -53,6 +50,10 @@ const props = defineProps({
   withTime: {
     type: Boolean,
     default: false,
+  },
+  range: {
+    type: Boolean,
+    default: false,
   }
 });
 
@@ -65,9 +66,23 @@ const placeholder = computed(() => {
   return props.withTime ? 'ДД.ММ.ГГГГ ЧЧ:мм' : 'ДД.ММ.ГГГГ';
 });
 
+// Функция для проверки, является ли значение пустым или невалидным
+const isEmptyOrInvalid = (value) => {
+  if (!value) return true;
+  if (typeof value === 'string' && value.trim() === '') return true;
+  if (value === 'Invalid Date') return true;
+
+  try {
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime());
+  } catch {
+    return true;
+  }
+};
+
 // Функция для извлечения даты из значения модели
 const extractDatePart = (value) => {
-  if (!value) return '';
+  if (isEmptyOrInvalid(value)) return '';
 
   if (typeof value === 'string' && value.includes('/')) {
     // Формат YYYY/MM/DD или YYYY/MM/DD HH:mm
@@ -90,7 +105,7 @@ const extractDatePart = (value) => {
 const extractTimePart = (value) => {
   if (!props.withTime) return '00:00';
 
-  if (!value) return '00:00';
+  if (isEmptyOrInvalid(value)) return '00:00';
 
   if (typeof value === 'string') {
     if (value.includes(' ')) {
@@ -112,13 +127,30 @@ const extractTimePart = (value) => {
   return '00:00';
 };
 
+// Обработчик изменения даты в QDate
+const handleDateUpdate = (newValue) => {
+  if (!newValue || newValue.trim() === '') {
+    // Если дата очищена в календаре
+    if (props.withTime) {
+      model.value = null;
+    } else {
+      model.value = null;
+    }
+  }
+};
+
+// Обработчик очистки поля
+const handleClear = () => {
+  model.value = null;
+};
+
 // Внутренняя дата для QDate (формат YYYY/MM/DD)
 const internalDate = computed({
   get: () => {
     return extractDatePart(model.value);
   },
   set: (value) => {
-    if (value) {
+    if (value && value.trim() !== '') {
       if (props.withTime) {
         // Если включено время, сохраняем дату и время
         const time = internalTime.value || '00:00';
@@ -128,6 +160,7 @@ const internalDate = computed({
         model.value = value;
       }
     } else {
+      // Если значение пустое, устанавливаем null
       model.value = null;
     }
   }
@@ -141,8 +174,17 @@ const internalTime = computed({
   },
   set: (value) => {
     if (value && props.withTime) {
-      const datePart = internalDate.value || date.formatDate(new Date(), 'YYYY/MM/DD');
-      model.value = `${datePart} ${value}`;
+      const datePart = internalDate.value;
+      if (datePart && datePart.trim() !== '') {
+        model.value = `${datePart} ${value}`;
+      } else {
+        // Если даты нет, но пытаемся установить время, устанавливаем текущую дату
+        const today = date.formatDate(new Date(), 'YYYY/MM/DD');
+        model.value = `${today} ${value}`;
+      }
+    } else if (value === null || value === '') {
+      // Если время очищено, устанавливаем null
+      model.value = null;
     }
   }
 });
@@ -151,7 +193,7 @@ const internalTime = computed({
 const displayValue = computed({
   get: () => {
     const dateStr = internalDate.value;
-    if (!dateStr) return '';
+    if (!dateStr || dateStr.trim() === '') return '';
 
     try {
       // Форматируем дату в DD.MM.YYYY
@@ -159,6 +201,11 @@ const displayValue = computed({
         date.extractDate(dateStr, 'YYYY/MM/DD'),
         'DD.MM.YYYY'
       );
+
+      // Проверяем, что дата не 01.01.1900 (минимальная дата)
+      if (formattedDate === '01.01.1900') {
+        return '';
+      }
 
       // Добавляем время только если включено
       if (props.withTime) {
@@ -179,6 +226,13 @@ const displayValue = computed({
         // Извлекаем дату
         const dateStr = value.substring(0, 10); // ДД.ММ.ГГГГ
         const parsedDate = date.extractDate(dateStr, 'DD.MM.YYYY');
+
+        // Проверяем, что дата не 01.01.1900
+        if (date.formatDate(parsedDate, 'DD.MM.YYYY') === '01.01.1900') {
+          model.value = null;
+          return;
+        }
+
         const dateFormatted = date.formatDate(parsedDate, 'YYYY/MM/DD');
 
         if (props.withTime) {
@@ -211,7 +265,7 @@ const displayValue = computed({
 const setToday = () => {
   const today = date.formatDate(new Date(), 'YYYY/MM/DD');
   if (props.withTime) {
-    const time = internalTime.value || '00:00';
+    const time = internalTime.value || date.formatDate(new Date(), 'HH:mm');
     model.value = `${today} ${time}`;
   } else {
     model.value = today;
@@ -226,4 +280,9 @@ const setCurrentTime = () => {
     model.value = `${datePart} ${currentTime}`;
   }
 };
+
+// Наблюдатель за моделью для отладки
+watch(model, (newValue) => {
+  console.log('Model changed:', newValue);
+}, { deep: true });
 </script>

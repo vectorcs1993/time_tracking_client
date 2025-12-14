@@ -1,11 +1,10 @@
 <template>
   <q-tooltip :anchor="props.anchor" self="center left" class="pp-tooltip text-size" :class="{ 'dark': props.dark }"
-    :transition-duration="0">
+    :transition-duration="0" style="border-color: white;">
     <slot name="default" />
   </q-tooltip>
 </template>
 <script setup>
-import { defineProps } from 'vue';
 
 const props = defineProps({
   dark: Boolean,

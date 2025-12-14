@@ -8,7 +8,6 @@
 
 </template>
 <script setup>
-import { defineProps, defineModel } from 'vue';
 
 const model = defineModel();
 
