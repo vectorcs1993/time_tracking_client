@@ -74,7 +74,12 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
-});
+  // Единицы измерения для оси Y
+  yAxisUnit: {
+    type: String,
+    default: ''
+  }
+})
 
 // Универсальная структура данных - всегда multiple datasets
 const modelData = defineModel('data', {
@@ -125,6 +130,87 @@ const defaultColors = [
   '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF',
   '#FF6384A0', '#36A2EBA0', '#FFCE56A0', '#4BC0C0A0', '#9966FFA0', '#FF9F40A0'
 ]
+
+// Функция для форматирования значений на оси Y
+const formatYAxisValue = (value) => {
+  if (typeof value !== 'number') return value
+
+  const unit = props.yAxisUnit || ''
+
+  // Автоматическое определение количества знаков после запятой
+  const maxAbsValue = Math.max(...modelData.value.datasets.flatMap(d => d.data).map(Math.abs))
+
+  let decimals
+  if (maxAbsValue < 10) {
+    decimals = 2
+  } else if (maxAbsValue < 100) {
+    decimals = 1
+  } else {
+    decimals = 0
+  }
+
+  // Форматируем число
+  let formattedValue
+  try {
+    // Простое форматирование с разделителями тысяч
+    if (value % 1 === 0) {
+      // Целое число
+      formattedValue = value.toLocaleString('ru-RU')
+    } else {
+      // Дробное число
+      formattedValue = value.toFixed(decimals).replace('.', ',')
+
+      // Добавляем разделители тысяч для целой части
+      const parts = formattedValue.split(',')
+      if (parts[0].length > 3) {
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      }
+      formattedValue = parts.join(',')
+    }
+  } catch {
+    // Fallback
+    formattedValue = value.toString()
+  }
+
+  // Добавляем единицы измерения
+  if (unit) {
+    return `${formattedValue} ${unit}`
+  }
+
+  return formattedValue
+}
+
+// Функция для форматирования значений в tooltip
+const formatTooltipValue = (value) => {
+  if (typeof value !== 'number') return value
+
+  // Для tooltip показываем больше знаков после запятой
+  let formattedValue
+  try {
+    if (value % 1 === 0) {
+      formattedValue = value.toLocaleString('ru-RU')
+    } else {
+      formattedValue = value.toFixed(4).replace('.', ',')
+
+      // Убираем лишние нули в конце
+      formattedValue = formattedValue.replace(/,?0+$/, '')
+      if (formattedValue.endsWith(',')) {
+        formattedValue = formattedValue.slice(0, -1)
+      }
+
+      // Добавляем разделители тысяч
+      const parts = formattedValue.split(',')
+      if (parts[0].length > 3) {
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+      }
+      formattedValue = parts.join(',')
+    }
+  } catch {
+    formattedValue = value.toString()
+  }
+
+  return formattedValue
+}
 
 // Функция для преобразования hex цвета в rgba с прозрачностью
 const hexToRgba = (hex, alpha = 0.7) => {
@@ -220,6 +306,13 @@ const getChartOptions = () => {
   const colors = themeColors.value
   const isPieChart = props.chartType === 'pie'
 
+  // Callback для форматирования значений на оси Y
+  const yAxisTicksCallback = {
+    callback: function (value) {
+      return formatYAxisValue(value)
+    }
+  }
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -268,7 +361,14 @@ const getChartOptions = () => {
             const percentage = Math.round((value / total) * 100)
             return `${label}: ${value} (${percentage}%)`
           }
-        } : undefined,
+        } : {
+          // Добавляем единицы измерения в tooltip
+          label: (context) => {
+            const label = context.dataset.label || ''
+            const value = context.parsed.y
+            return `${label}: ${formatTooltipValue(value)}`
+          }
+        },
         displayColors: true,
         usePointStyle: false
       }
@@ -286,10 +386,16 @@ const getChartOptions = () => {
           color: colors.textSecondary,
           font: {
             size: 12
-          }
+          },
+          padding: 8,
+          ...yAxisTicksCallback
         },
         border: {
           color: colors.border
+        },
+        // Отключаем заголовок оси
+        title: {
+          display: false
         }
       },
       x: {
@@ -303,7 +409,8 @@ const getChartOptions = () => {
           color: colors.textSecondary,
           font: {
             size: 12
-          }
+          },
+          padding: 8
         },
         border: {
           color: colors.border
@@ -388,6 +495,8 @@ watch(() => props.chartType, updateChart)
 watch(() => props.showLegend, updateChart)
 watch(() => props.showAxisX, updateChart)
 watch(() => props.showAxisY, updateChart)
+// Следим за изменениями единиц измерения
+watch(() => props.yAxisUnit, updateChart)
 
 // Следим за изменениями данных модели
 watch(() => modelData.value, () => {

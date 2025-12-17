@@ -16,7 +16,10 @@
     separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
     v-model:selected="selected" @row-click="selectRow" :loading="load" style="height: 90vh;">
     <template v-slot:top>
-      <q-card-actions class="fit">
+      <q-card-actions class="fit q-gutter-sm">
+        <div class="text-h6">
+          Виды активностей
+        </div>
         <Button icon="add" label="Новая активность" @click="() => {
           dialogAdd = true;
           modelInput.name = '';

@@ -31,6 +31,9 @@
     @row-click="selectRow" @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
+        <div class="text-h6">
+          Таблицы
+        </div>
         <Button :dark="props.dark" icon="add" label="Новая таблица" @click="() => {
           dialogAdd = true;
           modelInput.name = '';

@@ -7,6 +7,9 @@
     @row-dblclick="router.push(`/report/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
+        <div class="text-h6">
+          Отчёты
+        </div>
         <Button :dark="props.dark" icon="add" label="Новый отчёт" @click="() => {
           dialogAdd = true;
           modelInput.name = '';

@@ -17,6 +17,8 @@ export const useAuthStore = defineStore('auth', {
     TYPE_METRICS_COUNT: 0,
     TYPE_METRICS_TIME: 1,
     TYPE_METRICS_COUNT_BOX: 2,
+    TYPE_DAILY_REPORT_BEFORE: 0,
+    TYPE_DAILY_REPORT_AFTER: 1,
     type_roles: [],
     type_period: [
       {
@@ -71,6 +73,15 @@ export const useAuthStore = defineStore('auth', {
       }
       return Number(localStorage.getItem(val));
     },
+    getTimeFormatForce(val, f) {
+      return moment(val).format(f);
+    },
+    isDateInRange(dateToCheck, startDate, endDate) {
+      const checkDate = moment(dateToCheck);
+      const start = moment(startDate);
+      const end = moment(endDate);
+      return checkDate.isBetween(start, end, null, '[]');
+    },
     getDatePeriod(period, dateStart, dateFinish) {
       const day = moment();
       const yesterday = day.clone().subtract(1, 'days');
@@ -102,6 +113,66 @@ export const useAuthStore = defineStore('auth', {
         dateFinish = 'null';
       }
       return [dateStart, dateFinish];
+    },
+    /**
+     * Получить уникальное короткое обозначение для избранного
+     * @param {string} label - Название пункта
+     * @param {Array} favoritesList - Массив избранных элементов
+     * @param {string} excludePath - Путь текущего элемента для исключения из проверки
+     * @returns {string} - Уникальное обозначение из 2 заглавных букв
+    */
+    getShortLabel(label, favoritesList, excludePath = '') {
+      if (!label || typeof label !== 'string') return '??';
+
+      // Убираем пробелы, берем первые 2 буквы и делаем заглавными
+      const baseLabel = label.replace(/\s+/g, '').substring(0, 2).toUpperCase();
+
+      // Если меньше 2 символов, дополняем
+      if (baseLabel.length < 2) return (baseLabel + '!').substring(0, 2);
+
+      // Проверяем уникальность
+      const isUnique = !favoritesList.some(fav =>
+        fav.path !== excludePath &&
+        fav.shortLabel === baseLabel
+      );
+
+      if (isUnique) return baseLabel;
+
+      // Если не уникально, пробуем другие варианты
+      const words = label.split(' ').filter(w => w.length > 0);
+
+      // Вариант 1: первые буквы первых двух слов
+      if (words.length >= 2) {
+        const altLabel = (words[0][0] + words[1][0]).toUpperCase();
+        const isAltUnique = !favoritesList.some(fav =>
+          fav.path !== excludePath &&
+          fav.shortLabel === altLabel
+        );
+        if (isAltUnique) return altLabel;
+      }
+
+      // Вариант 2: первая буква + вторая буква первого слова
+      if (words[0].length >= 2) {
+        const altLabel2 = (words[0][0] + words[0][1]).toUpperCase();
+        const isAltUnique2 = !favoritesList.some(fav =>
+          fav.path !== excludePath &&
+          fav.shortLabel === altLabel2
+        );
+        if (isAltUnique2) return altLabel2;
+      }
+
+      // Вариант 3: добавляем цифру
+      for (let i = 1; i <= 9; i++) {
+        const numberedLabel = baseLabel[0] + i;
+        const isNumberedUnique = !favoritesList.some(fav =>
+          fav.path !== excludePath &&
+          fav.shortLabel === numberedLabel
+        );
+        if (isNumberedUnique) return numberedLabel;
+      }
+
+      // Запасной вариант
+      return baseLabel[0] + '*';
     },
     // Инициализация store при загрузке приложения
     initializeStore() {

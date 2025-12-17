@@ -4,8 +4,12 @@
       <q-toolbar id="header">
         <q-btn flat dense square icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
         <q-card-section class="q-pa-sm row items-center full-width">
-          <div class="text-h6" style="display: block; cursor: pointer;" @click="() => router.push('/')">
-            {{ `Планерман ${getTitlePage()}` }}</div>
+          <img class="q-mt-xs" src="./logo.svg" style="cursor: pointer;" @click="toggleLeftDrawer">
+          <img class="q-mt-xs" src="./logo_standby_mono.svg"
+            style="padding: 0px; width: 40px; height: 30px; cursor: pointer; position: absolute; left: 160px; top: 12px; z-index: 99;"
+            @click="toggleLeftDrawer">
+          <img class="q-mt-xs" src="./planerman.svg"
+            style="cursor: pointer; position: absolute; left: 203px; top: 12px; z-index: 99;" @click="toggleLeftDrawer">
           <q-space />
           <div v-if="authStore.getUser && authStore.getBranch">
             <Button :label="authStore.getUser.name" icon="person" :dark="dark">
@@ -24,14 +28,14 @@
                       Роль:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getRole.name
-                    }}</q-badge>
+                      }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div>
                       Группа:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name
-                      }}</q-badge>
+                    }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div class="col">
@@ -52,10 +56,12 @@
         </q-card-section>
       </q-toolbar>
     </q-header>
+
     <q-drawer :dark="dark" v-model="leftDrawerOpen" :width="350" :mini-width="55" :breakpoint="500"
       :class="`${dark ? 'bg-header-dark' : 'bg-header-light'}`" mini-to-overlay :mini="miniState">
       <q-list dark>
-        <template v-for="(menuItem, index) in menuList" :key="index">
+        <!-- Основные пункты меню -->
+        <template v-for="(menuItem, index) in mainMenuItems" :key="index">
           <q-item :to="menuItem.to" @click="() => { showMessage = true; miniState = true; }">
             <q-item-section v-if="menuItem.icon" avatar>
               <q-icon :name="menuItem.icon" />
@@ -68,11 +74,42 @@
             </q-item-section>
           </q-item>
         </template>
+        <!-- Разделитель, если есть избранное -->
+        <div v-if="favoriteItems.length > 0">
+          <q-separator :dark="dark" />
+        </div>
+
+        <!-- Избранное -->
+        <template v-for="(favorite, index) in favoriteItems" :key="'fav-' + index">
+          <q-item clickable @click="navigateTo(favorite.to)" :active="isActive(favorite.to)">
+            <q-item-section avatar>
+              <div>
+                {{ favorite.shortLabel }}
+              </div>
+            </q-item-section>
+            <q-item-section>
+              {{ favorite.label }}
+            </q-item-section>
+          </q-item>
+        </template>
       </q-list>
     </q-drawer>
+
     <q-page-container @click="() => { showMessage = true; miniState = true; }">
-      <router-view :authStore="authStore" :showError="showError" :showInfo="showInfo" :showConfirm="showConfirm"
-        :dark="dark" :debug="debug" :branch="branch" :load="load" :login="login" :logout="logout" contentHeight="840" />
+      <router-view :key="route.fullPath" v-slot="{ Component }" :authStore="authStore" :showError="showError"
+        :showInfo="showInfo" :showConfirm="showConfirm" :dark="dark" :debug="debug" :branch="branch" :load="load"
+        :login="login" :logout="logout" contentHeight="840">
+        <component :is="Component"
+          v-bind="{ authStore, showError, showInfo, showConfirm, dark, debug, branch, load, login, logout }">
+          <template #favorite>
+            <q-checkbox v-model="favorite" checked-icon="star" color="orange" size="sm" unchecked-icon="star_border"
+              :dark="dark" @update:model-value="(val) => {
+                if (val) addFavorites();
+                else removeFromFavorites(route.fullPath);
+              }" />
+          </template>
+        </component>
+      </router-view>
       <!-- Диалог ошибки -->
       <DialogError ref="de" :dark="dark" />
       <!-- Диалог подтверждения -->
@@ -93,7 +130,6 @@
 </template>
 
 <script setup>
-
 import {
   ref,
   onMounted,
@@ -108,10 +144,12 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
 
+const favorites = ref([]);
+
 const root = document.documentElement;
 
 const currentTextSize = ref(localStorage.getItem('text-size') ? Number(localStorage.getItem('text-size')) : 14);
-
+//
 const dark = ref(localStorage.getItem('bg-color') ? localStorage.getItem('bg-color') === 'true' : true);
 
 // диалог ошибки
@@ -125,7 +163,7 @@ const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 
-const routeDisplayConfig = {
+const routeDisplayConfig = ref({
   '/home': { label: 'Главная', icon: 'home' },
   '/tables': { label: 'Таблицы', icon: 'view_list' },
   '/reports': { label: 'Отчёты', icon: 'insert_chart_outlined' },
@@ -136,41 +174,72 @@ const routeDisplayConfig = {
   '/branches': { label: 'Группы пользователей', icon: 'diversity_3' },
   '/daily_reports': { label: 'Ежедневник', icon: 'event_repeat' },
   '/login': { label: 'Вход', icon: 'person' }
-};
+});
+const favorite = ref(false);
 
-// Основное вычисляемое свойство для меню
-const menuList = computed(() => {
+// Добавить в избранное по пути
+function addFavorites() {
+  const currentRoute = route.fullPath;
+  const currentTitle = document.title;
+  const isAlreadyAdded = favorites.value.some(fav => fav.path === currentRoute);
+  if (!isAlreadyAdded) {
+    favorites.value.push({
+      name: currentTitle,
+      path: currentRoute,
+      shortLabel: authStore.getShortLabel(currentTitle, favorites.value, currentRoute),
+      icon: 'star'
+    });
+    localStorage.setItem('favorites', JSON.stringify(favorites.value));
+  }
+}
+
+// Удалить из избранного по пути
+function removeFromFavorites(path) {
+  const index = favorites.value.findIndex(fav => fav.path === path);
+  if (index !== -1) {
+    favorites.value.splice(index, 1);
+    localStorage.setItem('favorites', JSON.stringify(favorites.value));
+  }
+}
+
+// Основные пункты меню
+const mainMenuItems = computed(() => {
   const routes = router.getRoutes();
   const userRole = authStore.getUser?.role;
 
   const filteredRoutes = routes.filter(route => {
-    // Пропускаем неосновные маршруты
-    if (!routeDisplayConfig[route.path]) return false;
+    if (routeDisplayConfig.value[route.path]) {
+      if (route.path === '/login' && authStore.isAuthenticated) return false;
 
-    if (route.path === '/login' && authStore.isAuthenticated) {
-      return false;
-    }
+      if (!authStore.isAuthenticated) return !route.meta?.requiresAuth;
 
-    // Для неавторизованных
-    if (!authStore.isAuthenticated) {
-      return !route.meta?.requiresAuth;
-    }
-
-    // Для авторизованных
-    if (route.meta?.requiresAuth) {
-      if (route.meta.allowedRoles?.length > 0) {
-        return route.meta.allowedRoles.includes(userRole);
+      if (route.meta?.requiresAuth) {
+        if (route.meta.allowedRoles?.length > 0) {
+          return route.meta.allowedRoles.includes(userRole);
+        }
+        return true;
       }
       return true;
     }
 
-    return true;
+    return false;
   });
 
-  // Преобразуем в формат для меню
   return filteredRoutes.map(route => ({
-    ...routeDisplayConfig[route.path],
+    ...routeDisplayConfig.value[route.path],
     to: route.path
+  }));
+});
+
+// Пункты избранного
+const favoriteItems = computed(() => {
+  if (!authStore.isAuthenticated) return [];
+
+  return favorites.value.map(fav => ({
+    label: fav.name,
+    shortLabel: fav.shortLabel,
+    icon: 'star',
+    to: fav.path
   }));
 });
 
@@ -184,22 +253,26 @@ const branch = ref();
 const showMessage = ref(true);
 const actionConfirm = ref(() => {
 });
+
 function showError(text) {
   de.value.setName('Ошибка');
   de.value.setText(text);
   de.value.show();
 }
+
 function showInfo(text) {
   di.value.setName('Инфо');
   di.value.setText(text);
   di.value.show();
 }
+
 function showConfirm(text, action) {
   actionConfirm.value = action;
   dc.value.setName('Подтверждение');
   dc.value.setText(text);
   dc.value.show();
 }
+
 function toggleLeftDrawer() {
   // Если это мобильное устройство, переключаем полностью открытие/закрытие
   if (window.innerWidth <= 500) {
@@ -210,12 +283,6 @@ function toggleLeftDrawer() {
     miniState.value = !miniState.value;
   }
 }
-const zoomLevel = ref(100);
-
-watch(zoomLevel, (newVal) => {
-  console.log('Масштаб изменен:', newVal + '%')
-})
-
 function updateTextSize() {
   root.style.setProperty('--text-size', `${currentTextSize.value}px`);
   localStorage.setItem('text-size', currentTextSize.value);
@@ -243,20 +310,31 @@ function logout() {
     router.push('/login');
   });
 }
-function getTitlePage() {
-  const a = menuList.value.find((r) => r.to === route.path);
-  if (a) return `/ ${a.label}`;
-  return '';
+function navigateTo(path) {
+  showMessage.value = true;
+  miniState.value = true;
+  router.push(path);
 }
+function isActive(path) {
+  return route.fullPath === path;
+}
+function updateFavoriteState(currentPath) {
+  favorite.value = favorites.value.some(f => f.path === currentPath);
+}
+watch(() => route.fullPath, (newPath) => {
+  favorite.value = favorites.value.some(f => f.path === newPath);
+  updateFavoriteState(newPath);
+}, { immediate: true });
 onMounted(async () => {
   load(false);
-  // Инициализируем store перед проверкой аутентификации
   authStore.initializeStore();
-
   if (authStore.isAuthenticated) {
     await authStore.initializeApp();
     updateTextSize();
     updateTheme();
+    const savedFavorites = localStorage.getItem('favorites');
+    if (savedFavorites) favorites.value = JSON.parse(savedFavorites);
+    favorite.value = favorites.value.find((f) => f.path === route.fullPath) !== undefined;
   }
 });
 onBeforeUnmount(() => {

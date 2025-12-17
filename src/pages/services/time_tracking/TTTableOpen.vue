@@ -13,6 +13,7 @@
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm items-center">
         <Button icon="arrow_back" label="К таблицам" @click="router.push(`/tables`)" :dark="props.dark" />
+        <slot name="favorite" />
         <div class="text-h6">
           {{ curentConfig.name }}
         </div>
@@ -73,13 +74,14 @@
         <!-- Фильтр сортировка -->
         <InputSelect label="Сортировать" v-model="inputFilter.sorted" :options="type_sorts"
           @update:model-value="updateInputFilter" :dark="props.dark" />
-        <Button v-if="records.length > 0" icon="download" label="Экспорт" @click="exportReport" :dark="props.dark" />
+        <Button v-if="records.length > 0" icon="file_download" label="Экспорт" @click="exportReport"
+          :dark="props.dark" />
       </div>
     </template>
     <template v-slot:body-cell="props">
       <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
-        <div class="text-size q-pa-sm row fit justify-center items-center"
-          style="white-space: pre-wrap; min-height: 48px;">
+        <div class="text-size row fit justify-center items-center"
+          style="white-space: pre-wrap; padding: 10px; overflow: hidden;">
           <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
             <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
               :dark="props.dark" @update:model-value="(val) => {
@@ -97,26 +99,30 @@
           <span class="fit" style="overflow: hidden;"
             v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
             <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type"
-              v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
-                save(props.row.id, props.col.name, props.row[props.col.name]);
+              v-model="props.row[props.col.name]" :dark="props.dark" @update:model-value="(val) => {
+                debouncedSave(props.row.id, props.col.name, val);
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
           <span v-else-if="props.col.type == 'number' && isAllowEdit(props.row.id, props.col.name)">
             <InputNumber v-if="activeRowId === props.row.id" cell :type="props.col.type"
-              v-model="props.row[props.col.name]" :dark="props.dark" @blur="() => {
-                save(props.row.id, props.col.name, props.row[props.col.name]);
+              v-model="props.row[props.col.name]" :dark="props.dark" @update:model-value="(val) => {
+                if (!val) {
+                  val = 0;
+                  props.row[props.col.name] = val;
+                }
+                save(props.row.id, props.col.name, val);
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
           <span v-else-if="props.col.type == 'date' && isAllowEdit(props.row.id, props.col.name)">
             <InputDate v-if="activeRowId === props.row.id" cell readonly v-model="props.row[props.col.name]"
-              :dark="props.dark" @update:model-value="() => {
-                save(props.row.id, props.col.name, props.row[props.col.name]);
+              :dark="props.dark" @update:model-value="(val) => {
+                save(props.row.id, props.col.name, val);
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
-          <span v-else style="white-space: pre-line; padding: 0px;">
+          <span v-else style="white-space: pre-wrap; padding: 0px;">
             {{ props.value }}
           </span>
         </div>
@@ -134,6 +140,7 @@
 import {
   ref,
   onMounted,
+  onUnmounted,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import moment from 'moment/moment';
@@ -150,7 +157,7 @@ import InputSelect from 'src/components/InputSelect.vue';
 import InputDate from 'src/components/InputDate.vue';
 
 const load = ref(false);
-
+const isUpdateInProgress = ref(false);
 document.title = 'Таблицы';
 
 const route = useRoute();
@@ -223,6 +230,7 @@ const users = ref([]);
 const selected = ref([]);
 const curentConfig = ref();
 
+
 function isAllowDeleted(_id) {
   try {
     if (curentConfig.value.cols.length > 0) {
@@ -277,14 +285,11 @@ function isAllowEdit(_id, _col, needSelect = false) {
 }
 function isAllowView(val) {
   try {
-    return val.allow_views.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
+    return val?.allow_views.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
   } catch (err) {
     console.log(err);
     return false;
   }
-}
-function getTimeFormatForce(val, f) {
-  return moment(val).format(f);
 }
 function isAllowCreate() {
   try {
@@ -306,7 +311,7 @@ const columnsPerm = [
     name: 'createdAt',
     label: 'Дата создания',
     align: 'center',
-    field: (row) => getTimeFormatForce(row.createdAt, 'DD.MM.YYYY'),
+    field: (row) => props.authStore.getTimeFormatForce(row.createdAt, 'DD.MM.YYYY'),
     sortable: true,
     edit: true,
     type: 'date',
@@ -317,7 +322,7 @@ const columnsPerm = [
     name: 'updatedAt',
     label: 'Дата изменения',
     align: 'left',
-    field: (row) => getTimeFormatForce(row.updatedAt, 'DD.MM.YYYY'),
+    field: (row) => props.authStore.getTimeFormatForce(row.updatedAt, 'DD.MM.YYYY'),
     sortable: true,
     sort: (a, b, rowA, rowB) => new Date(rowB.updatedRaw) - new Date(rowA.updatedRaw),
     style: 'min-width: 120px; max-width: 120px;',
@@ -326,7 +331,7 @@ const columnsPerm = [
     name: 'dateStartOrder',
     label: 'Дата запуска КД',
     align: 'center',
-    field: (row) => getTimeFormatForce(row.dateStartOrder, 'DD.MM.YYYY'),
+    field: (row) => props.authStore.getTimeFormatForce(row.dateStartOrder, 'DD.MM.YYYY'),
     sortable: true,
     edit: true,
     type: 'date',
@@ -337,7 +342,7 @@ const columnsPerm = [
     name: 'dateFinishOrder',
     label: 'Дата закрытия КД',
     align: 'center',
-    field: (row) => getTimeFormatForce(row.dateFinishOrder, 'DD.MM.YYYY'),
+    field: (row) => props.authStore.getTimeFormatForce(row.dateFinishOrder, 'DD.MM.YYYY'),
     sortable: true,
     edit: true,
     type: 'date',
@@ -561,13 +566,14 @@ function getItem(val) {
   return Number(localStorage.getItem(val));
 }
 function requestRecords(callback) {
+  if (isUpdateInProgress.value) return;
+
+  isUpdateInProgress.value = true;
   load.value = true;
   records.value.length = 0;
 
   const period = props.authStore.getDatePeriod(inputFilter.value.period.id, inputFilter.value.dateStart, inputFilter.value.dateFinish);
   [inputFilter.value.dateStart, inputFilter.value.dateFinish] = period;
-
-  console.log(period, inputFilter.value);
 
   props.authStore.authorizedRequest('get', `/records?order=${inputFilter.value.sorted.id
     }&branch=${inputFilter.value.branch.id
@@ -576,7 +582,7 @@ function requestRecords(callback) {
     }&user=${inputFilter.value.user.id
     }&dS=${inputFilter.value.dateStart
     }&dF=${inputFilter.value.dateFinish}
-    &columns=${columns.value.map((c) => c.name).join(',')}`).then((res) => { //
+    &columns=${columns.value.map((c) => c.name).join(',')}`).then((res) => {
 
       records.value.push(...res.data.map((rec) => ({
         ...rec,
@@ -597,6 +603,8 @@ function requestRecords(callback) {
       })));
 
       load.value = false;
+      isUpdateInProgress.value = false;
+
       if (inputFilter.value.sorted.id === 'ASC') {
         setImmediate(() => table.value.scrollTo(records.value.length - 1, 'end-force'));
       }
@@ -607,6 +615,8 @@ function requestRecords(callback) {
       }
     }).catch((err) => {
       console.log(err);
+      load.value = false;
+      isUpdateInProgress.value = false;
       props.showError('Ошибка загрузки данных');
     });
 }
@@ -755,25 +765,23 @@ function actionCreate() {
 function actionCopy() {
   const date = moment().format(datetimeFormat);
   localStorage.setItem('filter_date_finish', date);
-  props.authStore.authorizedRequest('get', `/services/genprice/TimeTracking/${selected.value[0].id}`).then((res) => {
-    const copyingObject = res.data.data;
-    copyingObject.id = undefined;
-    copyingObject.createdAt = undefined;
-    copyingObject.updatedAt = undefined;
+  props.authStore.authorizedRequest('get', `records/${selected.value[0].id}`).then((res) => {
+    const copyingObject = res.data[0];
+    delete copyingObject.id;
+    delete copyingObject.createdAt;
+    delete copyingObject.updatedAt;
+    copyingObject.dateStartOrder = props.authStore.getTimeFormatForce(copyingObject.dateStartOrder, props.authStore.datetimeFormat);
+    copyingObject.dateFinishOrder = props.authStore.getTimeFormatForce(copyingObject.dateFinishOrder, props.authStore.datetimeFormat);
     copyingObject.branch = branches.value.find((b) => b.id === props.authStore.getUser.branch).id;
     copyingObject.user = users.value.find((u) => u.email === props.authStore.getUser.email).id;
-    props.authStore.authorizedRequest('post', `/services/genprice/TimeTracking/create`, copyingObject).then((resCopy) => {
-      if (resCopy.data.result === 'ok') {
-        update(() => {
-          selected.value.length = 0;
-          const s = records.value.find((r) => r.id === resCopy.data.data.id);
-          if (s) {
-            selected.value.push(s);
-          }
-        });
-      } else if (resCopy.data.result === 'no') {
-        props.showInfo('Ошибка создания записи');
-      }
+    props.authStore.authorizedRequest('post', `records`, copyingObject).then((resCopy) => {
+      requestRecords(() => {
+        selected.value.length = 0;
+        const s = records.value.find((r) => r.id === resCopy.data);
+        if (s) {
+          selected.value.push(s);
+        }
+      });
     }).catch((err) => {
       console.log(err);
     });
@@ -801,6 +809,20 @@ function save(id, col, value) {
       update();
     });
   }
+}
+const debounceTimers = {};
+function debouncedSave(id, col, value) {
+  // Очищаем предыдущий таймер для этого конкретного поля
+  const key = `${id}-${col}`;
+  if (debounceTimers[key]) {
+    clearTimeout(debounceTimers[key]);
+  }
+
+  // Устанавливаем новый таймер
+  debounceTimers[key] = setTimeout(() => {
+    save(id, col, value);
+    delete debounceTimers[key];
+  }, 400); // Задержка 800мс
 }
 function updateFilterTypeWork() {
   inputFilter.value.activities.length = 0;
@@ -876,9 +898,13 @@ onMounted(() => {
     conf.allow_edit = JSON.parse(conf.allow_edit);
     conf.cols = JSON.parse(conf.cols);
     curentConfig.value = conf;
+    document.title = curentConfig.value.name;
     update();
   }).catch(() => {
     props.showError('Ошибка загрузки конфигурации');
   })
+});
+onUnmounted(() => {
+  Object.values(debounceTimers).forEach((timer) => clearTimeout(timer));
 });
 </script>

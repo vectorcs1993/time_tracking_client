@@ -1,7 +1,7 @@
 <template>
   <q-select dense square :dark="props.dark"
     :standout="!cell ? `${props.dark ? 'bg-grey text-white' : 'bg-green text-white'}` : false" :borderless="cell"
-    multiple use-chips stack-label v-model="model">
+    multiple use-chips stack-label popup-content-style="border-radius: 0px" v-model="model">
     <template v-slot:selected-item="scope">
       <q-chip dense removable @remove="() => {
         if (scope.index >= 0 && scope.index < model.length) {

@@ -8,7 +8,7 @@
       <!-- Кнопка даты -->
       <q-icon name="event" class="cursor-pointer q-pa-none" size="sm">
         <q-popup-proxy square transition-show="scale" transition-hide="scale" style="overflow-y: hidden;">
-          <q-date square v-model="internalDate" :dark="props.dark" @update:model-value="handleDateUpdate">
+          <q-date square v-model="internalDate" :dark="props.dark" @update:model-value="handleDateUpdate" no-unset>
             <div class="row items-center justify-end q-gutter-xs">
               <InputButton label="Сегодня" @click="setToday" :dark="props.dark" />
               <InputButton v-close-popup label="Закрыть" :dark="props.dark" />
@@ -21,7 +21,7 @@
       <template v-if="withTime">
         <q-icon name="access_time" class="cursor-pointer q-pa-none" size="sm">
           <q-popup-proxy square transition-show="scale" transition-hide="scale">
-            <q-time square="" v-model="internalTime" :dark="props.dark" format24h now-btn>
+            <q-time square="" v-model="internalTime" :dark="props.dark" format24h now-btn no-unset>
               <div class="row items-center justify-end q-gutter-xs">
                 <InputButton label="Сейчас" @click="setCurrentTime" :dark="props.dark" />
                 <InputButton v-close-popup label="Закрыть" :dark="props.dark" />
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { date } from 'quasar';
 import InputButton from './InputButton.vue';
 
@@ -280,9 +280,4 @@ const setCurrentTime = () => {
     model.value = `${datePart} ${currentTime}`;
   }
 };
-
-// Наблюдатель за моделью для отладки
-watch(model, (newValue) => {
-  console.log('Model changed:', newValue);
-}, { deep: true });
 </script>

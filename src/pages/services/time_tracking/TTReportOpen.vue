@@ -10,6 +10,7 @@
     <template v-slot:top>
       <q-card-actions class="row full-width q-gutter-sm items-center">
         <Button icon="arrow_back" label="К отчётам" @click="router.push(`/reports`)" :dark="props.dark" />
+        <slot name="favorite" />
         <div class="text-h6">
           {{ curentConfig.name }}
         </div>
@@ -27,7 +28,7 @@
           label="Предыдущий период" v-model="inputFilter.previous" @update:model-value="updateInputFilter"
           :dark="props.dark">
           <TTTooltip>
-            В отчёт добавятся дополнительные колонки с данными по аналогичному по продолжительности предшествующему
+            В отчёт добавятся дополнительные колонки с данными предшествующему
             периоду, данные колонки будут помечены символом - "*"
           </TTTooltip>
         </TTCheckbox>
@@ -47,7 +48,7 @@
             const prevSelect = selected[0];
             updateInputFilter();
           }" />
-        <Button v-if="rows.length > 0" label="Экспорт" @click="exportReport" :dark="props.dark" />
+        <Button v-if="rows.length > 0" icon="file_download" label="Экспорт" @click="exportReport" :dark="props.dark" />
         <div class="text-size">{{ returnSelectedInfo() }}</div>
       </div>
     </template>
@@ -86,9 +87,9 @@
     <div class="row full-width justify-center">
       <TTChart class="col" v-if="chartDataMetricCount.datasets.length > 0"
         label="Показатель продуктивности по количеству задач" chartType="bar" v-model:data="chartDataMetricCount"
-        :dark="props.dark" />
+        yAxisUnit="шт" :dark="props.dark" />
       <TTChart class="col" v-if="selected.length > 0 && chartDataIndividualCount.datasets.length > 0"
-        :label="`График продуктивности по количеству задач ${selected[0].main}`" chartType="line"
+        :label="`График продуктивности по количеству задач ${selected[0].main}`" chartType="line" yAxisUnit="шт"
         v-model:data="chartDataIndividualCount" :dark="props.dark">
         <template v-slot:actions>
         </template>
@@ -97,9 +98,9 @@
     <div class="row full-width justify-center">
       <TTChart class="col" v-if="chartDataMetricTime.datasets.length > 0"
         label="Показатель загрузки по временным метрикам" chartType="bar" v-model:data="chartDataMetricTime"
-        :dark="props.dark" />
+        yAxisUnit="ч" :dark="props.dark" />
       <TTChart class="col" v-if="selected.length > 0 && chartDataIndividualTime.datasets.length > 0"
-        :label="`График загрузки по временным метрикам ${selected[0].main}`" chartType="line"
+        :label="`График загрузки по временным метрикам ${selected[0].main}`" chartType="line" yAxisUnit="ч"
         v-model:data="chartDataIndividualTime" :dark="props.dark">
         <template v-slot:actions>
         </template>
@@ -107,9 +108,9 @@
     </div>
     <div class="row full-width justify-center">
       <TTChart class="col" v-if="chartDataMetricCountBox.datasets.length > 0" label="Показатель количества продукции"
-        chartType="bar" v-model:data="chartDataMetricCountBox" :dark="props.dark" />
+        yAxisUnit="шт" chartType="bar" v-model:data="chartDataMetricCountBox" :dark="props.dark" />
       <TTChart class="col" v-if="selected.length > 0 && chartDataIndividualCountBox.datasets.length > 0"
-        :label="`График по количеству продукции ${selected[0].main}`" chartType="line"
+        :label="`График по количеству продукции ${selected[0].main}`" chartType="line" yAxisUnit="шт"
         v-model:data="chartDataIndividualCountBox" :dark="props.dark">
         <template v-slot:actions>
         </template>
@@ -153,7 +154,7 @@ const users = ref([]);
 const branches = ref([]);
 const load = ref(false);
 const selected = ref([]);
-
+const isCreateReportInProgress = ref(false);
 const pagination = ref({
   rowsPerPage: 0,
 });
@@ -339,15 +340,21 @@ function update(callback) {
     conf.filter_branches = JSON.parse(conf.filter_branches);
     conf.cols = JSON.parse(conf.cols);
     curentConfig.value = conf;
+    document.title = curentConfig.value.name;
     load.value = false;
     createReport(callback);
   });
 }
 
 function createReport(callback) {
+  if (isCreateReportInProgress.value) return;
+
+  isCreateReportInProgress.value = true;
   load.value = true;
+
   const period = props.authStore.getDatePeriod(inputFilter.value.period.id, inputFilter.value.dateStart, inputFilter.value.dateFinish);
   [inputFilter.value.dateStart, inputFilter.value.dateFinish] = period;
+
   props.authStore.authorizedRequest('get', `report_build?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}&previous=${inputFilter.value.previous ? 1 : 0}`).then((respRP) => {
     const { original, previous } = respRP.data;
     columns.value.length = 0;
@@ -380,9 +387,10 @@ function createReport(callback) {
         total.value[colPrev.name] = previous.total[original.columns[ic].name];
       });
     }
-    console.log(total);
 
     load.value = false;
+    isCreateReportInProgress.value = false;
+
     chartDataMetricCount.value = {
       labels: rows.value.map((row) => row.main),
       datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart).map((col) => {
@@ -426,6 +434,8 @@ function createReport(callback) {
     }
   }).catch((err) => {
     console.log(err);
+    load.value = false;
+    isCreateReportInProgress.value = false;
     props.showInfo(err);
   });
 }
@@ -453,8 +463,9 @@ function saveForLocalStorage() {
 
 function updateInputFilter() {
   saveForLocalStorage();
-  createReport();
-  updateSelect(selected.value);
+  createReport(() => {
+    if (!isCreateReportInProgress.value) updateSelect(selected.value);
+  });
 }
 function returnSelectedInfo() {
   return `Всего объектов: ${rows.value.length}`;
