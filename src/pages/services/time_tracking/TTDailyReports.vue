@@ -1,7 +1,7 @@
 <template>
   <q-card-actions class="row fit q-pl-lg q-gutter-sm items-center">
     <div class="text-h6">
-      Ежедневник
+      Ежедневник <q-badge align="top" color="orange" text-color="black">в разработке</q-badge>
     </div>
     <q-space />
     <Button label="Обновить" icon="sync" @click="update" :dark="props.dark" />
@@ -295,6 +295,17 @@ const columns = ref([
     type: 'selector',
     options: () => branches.value,
   },
+
+  {
+    name: 'data',
+    label: 'Описание работ',
+    align: 'center',
+    field: 'data',
+    sortable: false,
+    edit: true,
+    type: 'textarea',
+    style: 'min-width: 350px; max-width: 350px;',
+  },
   {
     name: 'type_work',
     label: 'Тип отчёта',
@@ -317,16 +328,6 @@ const columns = ref([
     options: () => projects.value,
     style: 'min-width: 170px; max-width: 170px;',
     disable: (row) => row.type_work.id !== props.authStore.TYPE_WORK_PROJECT,
-  },
-  {
-    name: 'data',
-    label: 'Описание работ',
-    align: 'center',
-    field: 'data',
-    sortable: false,
-    edit: true,
-    type: 'textarea',
-    style: 'min-width: 350px; max-width: 350px;',
   },
   {
     name: 'progress',
@@ -392,7 +393,13 @@ function update(callback) {
 
       rowsBefore.value.push(...data.filter((d) => d.type === props.authStore.TYPE_DAILY_REPORT_BEFORE));
       rowsAfter.value.push(...data.filter((d) => d.type === props.authStore.TYPE_DAILY_REPORT_AFTER));
-    }).finally(() => {
+      isUpdateInProgress.value = false;
+      if (callback) {
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }
+    }).catch(() => {
       isUpdateInProgress.value = false;
       if (callback) {
         if (typeof callback === 'function') {

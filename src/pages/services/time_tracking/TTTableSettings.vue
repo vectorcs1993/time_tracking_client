@@ -43,6 +43,11 @@
           :dark="props.dark" style="width: 100%;" />
         <TTSelectMultiply label="Разрешить удаление" v-model="config.allow_delete" :options="branches_mod"
           :dark="props.dark" style="width: 100%;" />
+
+        <TTInputTextSingle label="Описание" v-model="config.description" :dark="props.dark" />
+
+        <InputTextarea label="Промпт для ИИ помощника" v-model="config.prompt"
+          style="width: 100%; height: 400px; margin: 5px;" :dark="props.dark" />
       </div>
     </template>
     <template v-slot:after>
@@ -172,6 +177,7 @@ import TTSelectMultiply from 'src/components/TTSelectMultiply.vue';
 import Checkbox from 'src/components/InputCheckbox.vue';
 import { getNewId, OPTION_ALL, TT_TYPE_FLAG } from './fun';
 import InputSelect from 'src/components/InputSelect.vue';
+import InputTextarea from 'src/components/InputTextarea.vue';
 
 const route = useRoute();
 const router = useRouter();

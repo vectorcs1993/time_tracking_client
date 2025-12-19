@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     branch: null,
     role: null,
+    favorites: [],
     refreshPromise: null,
     ROLE_ADMINISTRATOR: 1,
     ROLE_USER: 0,
@@ -64,6 +65,7 @@ export const useAuthStore = defineStore('auth', {
     getBranch: (state) => state.branch,
     getRole: (state) => state.role,
     getTypesPeriod: (state) => state.type_period,
+    getFavorites: (state) => state.favorites,
   },
 
   actions: {
@@ -121,58 +123,139 @@ export const useAuthStore = defineStore('auth', {
      * @param {string} excludePath - Путь текущего элемента для исключения из проверки
      * @returns {string} - Уникальное обозначение из 2 заглавных букв
     */
-    getShortLabel(label, favoritesList, excludePath = '') {
+    getShortLabel(label, favoritesList, excludePath = '', userId) {
       if (!label || typeof label !== 'string') return '??';
 
-      // Убираем пробелы, берем первые 2 буквы и делаем заглавными
-      const baseLabel = label.replace(/\s+/g, '').substring(0, 2).toUpperCase();
+      // Фильтруем список избранного для текущего пользователя
+      const userFavorites = favoritesList.filter((fav) => fav.user === userId);
 
-      // Если меньше 2 символов, дополняем
-      if (baseLabel.length < 2) return (baseLabel + '!').substring(0, 2);
+      // Получаем все существующие short_name для этого пользователя
+      const existingShortLabels = new Set(userFavorites.filter((fav) => fav.path !== excludePath).map((fav) => fav.short_name));
 
-      // Проверяем уникальность
-      const isUnique = !favoritesList.some(fav =>
-        fav.path !== excludePath &&
-        fav.shortLabel === baseLabel
-      );
+      // Основные стратегии генерации
+      const generateCandidates = (inputLabel) => {
+        const candidates = [];
+        const cleanLabel = inputLabel.replace(/\s+/g, '').toUpperCase();
+        const words = inputLabel.trim().split(/\s+/).filter(w => w.length > 0);
 
-      if (isUnique) return baseLabel;
+        // Стратегия 1: Первые 2 буквы (без пробелов)
+        if (cleanLabel.length >= 2) {
+          candidates.push(cleanLabel.substring(0, 2));
+        }
 
-      // Если не уникально, пробуем другие варианты
-      const words = label.split(' ').filter(w => w.length > 0);
+        // Стратегия 2: Первые буквы первых двух слов
+        if (words.length >= 2) {
+          candidates.push((words[0][0] + words[1][0]).toUpperCase());
+        }
 
-      // Вариант 1: первые буквы первых двух слов
-      if (words.length >= 2) {
-        const altLabel = (words[0][0] + words[1][0]).toUpperCase();
-        const isAltUnique = !favoritesList.some(fav =>
-          fav.path !== excludePath &&
-          fav.shortLabel === altLabel
-        );
-        if (isAltUnique) return altLabel;
+        // Стратегия 3: Первая и последняя буква первого слова
+        if (words.length > 0 && words[0].length >= 2) {
+          const firstWord = words[0].toUpperCase();
+          candidates.push(firstWord[0] + firstWord[firstWord.length - 1]);
+        }
+
+        // Стратегия 4: Первая буква + вторая буква первого слова
+        if (words.length > 0 && words[0].length >= 2) {
+          candidates.push((words[0][0] + words[0][1]).toUpperCase());
+        }
+
+        // Стратегия 5: Буквы из середины длинных слов
+        if (cleanLabel.length >= 4) {
+          candidates.push(cleanLabel[0] + cleanLabel[Math.floor(cleanLabel.length / 2)]);
+        }
+
+        // Стратегия 6: Если только одно слово длинное
+        if (words.length === 1 && words[0].length >= 3) {
+          const word = words[0].toUpperCase();
+          candidates.push(word[0] + word[2]);
+        }
+
+        return candidates.filter(c => c.length === 2);
+      };
+
+      // Генерация с цифровым суффиксом
+      const generateWithSuffix = (base, startFrom = 1) => {
+        const results = [];
+        // Пробуем цифры 1-9
+        for (let i = startFrom; i <= 9; i++) {
+          results.push(base[0] + i);
+        }
+        // Затем буквы A-Z
+        for (let i = 0; i < 26; i++) {
+          const letter = String.fromCharCode(65 + i); // A-Z
+          results.push(base[0] + letter);
+        }
+        return results;
+      };
+
+      // Стратегия 7: Комбинации букв A-Z
+      const generateLetterCombinations = () => {
+        const combinations = [];
+        for (let i = 0; i < 26; i++) {
+          const letter1 = String.fromCharCode(65 + i);
+          for (let j = 0; j < 26; j++) {
+            const letter2 = String.fromCharCode(65 + j);
+            combinations.push(letter1 + letter2);
+            if (combinations.length >= 100) break; // Ограничиваем количество
+          }
+          if (combinations.length >= 100) break;
+        }
+        return combinations;
+      };
+
+      // Основные кандидаты
+      const candidates = generateCandidates(label);
+
+      // Пробуем кандидатов без суффиксов
+      for (const candidate of candidates) {
+        if (!existingShortLabels.has(candidate)) {
+          return candidate;
+        }
       }
 
-      // Вариант 2: первая буква + вторая буква первого слова
-      if (words[0].length >= 2) {
-        const altLabel2 = (words[0][0] + words[0][1]).toUpperCase();
-        const isAltUnique2 = !favoritesList.some(fav =>
-          fav.path !== excludePath &&
-          fav.shortLabel === altLabel2
-        );
-        if (isAltUnique2) return altLabel2;
+      // Пробуем кандидатов с цифровыми/буквенными суффиксами
+      for (const base of candidates) {
+        if (base && base[0]) {
+          const suffixed = generateWithSuffix(base);
+          for (const candidate of suffixed) {
+            if (!existingShortLabels.has(candidate)) {
+              return candidate;
+            }
+          }
+        }
       }
 
-      // Вариант 3: добавляем цифру
-      for (let i = 1; i <= 9; i++) {
-        const numberedLabel = baseLabel[0] + i;
-        const isNumberedUnique = !favoritesList.some(fav =>
-          fav.path !== excludePath &&
-          fav.shortLabel === numberedLabel
-        );
-        if (isNumberedUnique) return numberedLabel;
+      // Пробуем все возможные комбинации букв
+      const letterCombinations = generateLetterCombinations();
+      for (const combination of letterCombinations) {
+        if (!existingShortLabels.has(combination)) {
+          return combination;
+        }
       }
 
-      // Запасной вариант
-      return baseLabel[0] + '*';
+      // Если все комбинации заняты, используем hash-based подход
+      const hash = Math.abs(label.split('').reduce((acc, char) => {
+        return ((acc << 5) - acc) + char.charCodeAt(0);
+      }, 0));
+
+      // Генерируем на основе hash
+      for (let i = 0; i < 100; i++) {
+        const num = (hash + i) % 100;
+        const candidate = String.fromCharCode(65 + (num % 26)) +
+          String.fromCharCode(65 + ((num + 1) % 26));
+
+        if (!existingShortLabels.has(candidate)) {
+          return candidate;
+        }
+      }
+
+      // Аварийный вариант - используем timestamp
+      const timestamp = Date.now() % 10000;
+      const emergencyLabel =
+        String.fromCharCode(65 + (timestamp % 26)) +
+        String.fromCharCode(65 + ((timestamp + 7) % 26));
+
+      return emergencyLabel;
     },
     // Инициализация store при загрузке приложения
     initializeStore() {
@@ -194,18 +277,15 @@ export const useAuthStore = defineStore('auth', {
         api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
       }
     },
-
     setToken(token) {
       this.token = token;
       localStorage.setItem(process.env.LOCAL_STORAGE_NAME_TOKEN, token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     },
-
     setRefreshToken(refresh) {
       this.refresh = refresh;
       localStorage.setItem(process.env.LOCAL_STORAGE_NAME_TOKEN_REFRESH, refresh);
     },
-
     async refreshToken() {
       if (this.refreshPromise) {
         return this.refreshPromise;
@@ -236,7 +316,6 @@ export const useAuthStore = defineStore('auth', {
         this.refreshPromise = null;
       }
     },
-
     async authorizedRequest(method, url, data = null, responseType) {
 
       const requestConfig = {
@@ -254,8 +333,6 @@ export const useAuthStore = defineStore('auth', {
         const response = await api(requestConfig);
         return response;
       } catch (error) {
-        console.log(error);
-
         if (error.response?.status === 401 || error.response?.status === 403) {
           try {
             await this.refreshToken();
@@ -266,7 +343,6 @@ export const useAuthStore = defineStore('auth', {
         } else throw error;
       }
     },
-
     async fetchUser() {
       if (!this.token) {
         throw new Error('No token available');
@@ -287,6 +363,10 @@ export const useAuthStore = defineStore('auth', {
         const responseBranch = await api.get(`/branches/${this.user.branch}`);
         this.branch = responseBranch.data;
 
+
+        const responseFavoites = await api.get('favorites');
+        this.favorites.push(...responseFavoites.data);
+
         return this.user;
       } catch (err) {
 
@@ -306,7 +386,6 @@ export const useAuthStore = defineStore('auth', {
         throw err;
       }
     },
-
     async initializeApp() {
 
       // Сначала инициализируем store
@@ -329,7 +408,6 @@ export const useAuthStore = defineStore('auth', {
         }
       }
     },
-
     async login(credentials) {
       const response = await api.post('/login', credentials);
       const { token, refresh, user } = response.data;
@@ -340,6 +418,47 @@ export const useAuthStore = defineStore('auth', {
         this.setRefreshToken(refresh);
       }
       return response.data;
+    },
+    // Добавить в избранное по пути
+    async addFavorite(path) {
+      const currentTitle = document.title;
+      const userFavorites = this.favorites.filter((fav) => fav.user === this.user.id);
+      const short_name = this.getShortLabel(
+        currentTitle,
+        userFavorites, // передаем только записи текущего пользователя
+        '', // excludePath - пустая строка для новой записи
+        this.user.id
+      );
+      // Проверяем, нет ли уже такого пути у пользователя
+      const isPathAlreadyAdded = userFavorites.some((fav) => fav.path === path);
+      if (!isPathAlreadyAdded) {
+        const favorite = {
+          user: this.user.id,
+          name: currentTitle,
+          path,
+          short_name: short_name,
+        };
+        const favoriteId = await this.authorizedRequest('post', 'favorites', favorite);
+        favorite.id = favoriteId.data;
+        this.favorites.push(favorite);
+      } else {
+        console.log('Этот путь уже добавлен в избранное');
+      }
+    },
+    // Удалить из избранного по пути
+    async removeFavorite(path) {
+      try {
+        const favorite = this.favorites.find((fav) => fav.path === path);
+        if (favorite) {
+          const deleteId = Number(favorite.id)
+          if (!isNaN(deleteId)) {
+            this.favorites.splice(this.favorites.findIndex((fav) => fav.id === deleteId), 1);
+            await this.authorizedRequest('delete', `favorites/${deleteId}`);
+          }
+        }
+      } catch (err) {
+        console.log(err);
+      }
     },
     // Выносим очистку данных в отдельный метод
     clearAuthData() {
@@ -461,6 +580,42 @@ export const useAuthStore = defineStore('auth', {
       } catch {
         return false;
       }
+    },
+    jsonToCsv(jsonData) {
+      if (!Array.isArray(jsonData) || jsonData.length === 0) {
+        return '';
+      }
+
+      // Получаем заголовки из ключей первого объекта
+      const headers = Object.keys(jsonData[0]);
+
+      // Создаем строку заголовков
+      let csv = headers.map(header => `"${header}"`).join(',') + '\n';
+
+      // Добавляем строки с данными
+      jsonData.forEach(item => {
+        const row = headers.map(header => {
+          // Обрабатываем значения: экранируем кавычки и обрабатываем специальные случаи
+          let value = item[header];
+
+          if (value === null || value === undefined) {
+            value = '';
+          } else if (typeof value === 'object') {
+            // Если значение - объект, преобразуем в строку JSON
+            value = JSON.stringify(value);
+          } else {
+            value = String(value);
+          }
+
+          // Экранируем кавычки и оборачиваем в кавычки
+          value = value.replace(/"/g, '""');
+          return `"${value}"`;
+        }).join(',');
+
+        csv += row + '\n';
+      });
+
+      return csv;
     }
   }
 })

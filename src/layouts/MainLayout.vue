@@ -8,8 +8,8 @@
           <img class="q-mt-xs" src="./logo_standby_mono.svg"
             style="padding: 0px; width: 40px; height: 30px; cursor: pointer; position: absolute; left: 160px; top: 12px; z-index: 99;"
             @click="toggleLeftDrawer">
-          <img class="q-mt-xs" src="./planerman.svg"
-            style="cursor: pointer; position: absolute; left: 203px; top: 12px; z-index: 99;" @click="toggleLeftDrawer">
+          <img class="q-mt-xs" src="./planerman_ny.svg"
+            style="cursor: pointer; position: absolute; left: 203px; top: 7px; z-index: 99;" @click="toggleLeftDrawer">
           <q-space />
           <div v-if="authStore.getUser && authStore.getBranch">
             <Button :label="authStore.getUser.name" icon="person" :dark="dark">
@@ -28,14 +28,14 @@
                       Роль:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getRole.name
-                      }}</q-badge>
+                    }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div>
                       Группа:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name
-                    }}</q-badge>
+                      }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div class="col">
@@ -75,26 +75,24 @@
           </q-item>
         </template>
         <!-- Разделитель, если есть избранное -->
-        <div v-if="favoriteItems.length > 0">
+        <div v-if="authStore.getFavorites.length > 0">
           <q-separator :dark="dark" />
         </div>
-
         <!-- Избранное -->
-        <template v-for="(favorite, index) in favoriteItems" :key="'fav-' + index">
-          <q-item clickable @click="navigateTo(favorite.to)" :active="isActive(favorite.to)">
+        <template v-for="(favorite, index) in authStore.getFavorites" :key="'fav-' + index">
+          <q-item clickable @click="navigateTo(favorite.path)" :active="isActive(favorite.path)">
             <q-item-section avatar>
               <div>
-                {{ favorite.shortLabel }}
+                {{ favorite.short_name }}
               </div>
             </q-item-section>
             <q-item-section>
-              {{ favorite.label }}
+              {{ favorite.name }}
             </q-item-section>
           </q-item>
         </template>
       </q-list>
     </q-drawer>
-
     <q-page-container @click="() => { showMessage = true; miniState = true; }">
       <router-view :key="route.fullPath" v-slot="{ Component }" :authStore="authStore" :showError="showError"
         :showInfo="showInfo" :showConfirm="showConfirm" :dark="dark" :debug="debug" :branch="branch" :load="load"
@@ -104,8 +102,8 @@
           <template #favorite>
             <q-checkbox v-model="favorite" checked-icon="star" color="orange" size="sm" unchecked-icon="star_border"
               :dark="dark" @update:model-value="(val) => {
-                if (val) addFavorites();
-                else removeFromFavorites(route.fullPath);
+                if (val) authStore.addFavorite(route.fullPath);
+                else authStore.removeFavorite(route.fullPath);
               }" />
           </template>
         </component>
@@ -144,8 +142,6 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
 
-const favorites = ref([]);
-
 const root = document.documentElement;
 
 const currentTextSize = ref(localStorage.getItem('text-size') ? Number(localStorage.getItem('text-size')) : 14);
@@ -175,39 +171,15 @@ const routeDisplayConfig = ref({
   '/daily_reports': { label: 'Ежедневник', icon: 'event_repeat' },
   '/login': { label: 'Вход', icon: 'person' }
 });
+
 const favorite = ref(false);
-
-// Добавить в избранное по пути
-function addFavorites() {
-  const currentRoute = route.fullPath;
-  const currentTitle = document.title;
-  const isAlreadyAdded = favorites.value.some(fav => fav.path === currentRoute);
-  if (!isAlreadyAdded) {
-    favorites.value.push({
-      name: currentTitle,
-      path: currentRoute,
-      shortLabel: authStore.getShortLabel(currentTitle, favorites.value, currentRoute),
-      icon: 'star'
-    });
-    localStorage.setItem('favorites', JSON.stringify(favorites.value));
-  }
-}
-
-// Удалить из избранного по пути
-function removeFromFavorites(path) {
-  const index = favorites.value.findIndex(fav => fav.path === path);
-  if (index !== -1) {
-    favorites.value.splice(index, 1);
-    localStorage.setItem('favorites', JSON.stringify(favorites.value));
-  }
-}
 
 // Основные пункты меню
 const mainMenuItems = computed(() => {
   const routes = router.getRoutes();
   const userRole = authStore.getUser?.role;
 
-  const filteredRoutes = routes.filter(route => {
+  return routes.filter((route) => {
     if (routeDisplayConfig.value[route.path]) {
       if (route.path === '/login' && authStore.isAuthenticated) return false;
 
@@ -221,25 +193,10 @@ const mainMenuItems = computed(() => {
       }
       return true;
     }
-
     return false;
-  });
-
-  return filteredRoutes.map(route => ({
+  }).map((route) => ({
     ...routeDisplayConfig.value[route.path],
     to: route.path
-  }));
-});
-
-// Пункты избранного
-const favoriteItems = computed(() => {
-  if (!authStore.isAuthenticated) return [];
-
-  return favorites.value.map(fav => ({
-    label: fav.name,
-    shortLabel: fav.shortLabel,
-    icon: 'star',
-    to: fav.path
   }));
 });
 
@@ -318,13 +275,11 @@ function navigateTo(path) {
 function isActive(path) {
   return route.fullPath === path;
 }
-function updateFavoriteState(currentPath) {
-  favorite.value = favorites.value.some(f => f.path === currentPath);
-}
+
 watch(() => route.fullPath, (newPath) => {
-  favorite.value = favorites.value.some(f => f.path === newPath);
-  updateFavoriteState(newPath);
+  favorite.value = authStore.getFavorites.some((f) => f.path === newPath);
 }, { immediate: true });
+
 onMounted(async () => {
   load(false);
   authStore.initializeStore();
@@ -332,9 +287,6 @@ onMounted(async () => {
     await authStore.initializeApp();
     updateTextSize();
     updateTheme();
-    const savedFavorites = localStorage.getItem('favorites');
-    if (savedFavorites) favorites.value = JSON.parse(savedFavorites);
-    favorite.value = favorites.value.find((f) => f.path === route.fullPath) !== undefined;
   }
 });
 onBeforeUnmount(() => {

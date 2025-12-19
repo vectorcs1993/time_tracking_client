@@ -83,6 +83,12 @@
       </q-tr>
     </template>
   </q-table>
+  <q-card-section v-else class="row q-gutter-xs full-width items-center">
+    <Button icon="arrow_back" @click="router.push(`/reports`)" :dark="props.dark" />
+    <div class="text-h6">
+      Нет доступа или конфигурация не найдена
+    </div>
+  </q-card-section>
   <div>
     <div class="row full-width justify-center">
       <TTChart class="col" v-if="chartDataMetricCount.datasets.length > 0"
@@ -140,6 +146,8 @@ const { id } = route.params;
 
 const props = defineProps({
   showInfo: Function,
+  showError: Function,
+  showConfirm: Function,
   contentHeight: Number,
   dark: Boolean,
   authStore: Object,
@@ -343,6 +351,10 @@ function update(callback) {
     document.title = curentConfig.value.name;
     load.value = false;
     createReport(callback);
+  }).catch((err) => {
+    console.log(err);
+    props.authStore.removeFavorite(route.fullPath);
+    props.showError('Конфигурация не найдена');
   });
 }
 

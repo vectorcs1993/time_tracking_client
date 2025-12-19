@@ -53,6 +53,8 @@
           @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
         <!-- Поиск -->
         <InputSearch label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
+        <Button :dark="props.dark" label="Изменить" icon="edit"
+          @click="() => router.push(`/configurations/table/${curentConfig.id}`)" />
       </q-card-actions>
     </template>
     <template v-slot:header-cell="props">
@@ -76,6 +78,8 @@
           @update:model-value="updateInputFilter" :dark="props.dark" />
         <Button v-if="records.length > 0" icon="file_download" label="Экспорт" @click="exportReport"
           :dark="props.dark" />
+        <Button v-if="records.length > 0 && curentConfig.prompt !== '' && props.authStore.isAdministrator"
+          icon="auto_awesome" label="ИИ Отчёт" @click="generateReport" :dark="props.dark" />
       </div>
     </template>
     <template v-slot:body-cell="props">
@@ -98,7 +102,7 @@
           </span>
           <span class="fit" style="overflow: hidden;"
             v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
-            <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type"
+            <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type" input-style="text-align: center;"
               v-model="props.row[props.col.name]" :dark="props.dark" @update:model-value="(val) => {
                 debouncedSave(props.row.id, props.col.name, val);
               }" />
@@ -132,9 +136,34 @@
   <q-card-section v-else class="row q-gutter-xs full-width items-center">
     <Button icon="arrow_back" @click="router.push(`/tables`)" :dark="props.dark" />
     <div class="text-h6">
-      Нет доступа
+      Нет доступа или конфигурация не найдена
     </div>
   </q-card-section>
+
+  <!-- Диалоговое окно чата -->
+  <q-dialog square v-model="aiReport" :dark="props.dark" full-width>
+    <q-card :class="`${dark ? 'pp-dark' : 'pp-light'} text-size`">
+      <q-bar :dark="props.dark" :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white text-size`">
+        <div class="text-size truncate">ИИ Помощник</div>
+        <q-space />
+        <q-btn dense square flat icon="close" v-close-popup />
+      </q-bar>
+      <!-- Область сообщений с прокруткой -->
+      <q-card-section class="q-pa-none scroll">
+        <div class="q-pa-md" style="height: 70vh; max-height: 70vh; overflow-y: scroll;">
+          <!-- Пример использования q-chat-message -->
+          <div :class="`${dark ? 'pp-dark' : 'pp-light'} text-size`" v-for="(message, index) in messages" :key="index"
+            v-html="message.text"></div>
+        </div>
+      </q-card-section>
+      <q-separator :dark="props.dark" />
+      <q-card-actions class="q-pa-md">
+        <q-space />
+        <Button label="Обновить" icon="sync" @click="generateReport" />
+      </q-card-actions>
+      <PPLoading v-model="loadReport" :dark="props.dark" />
+    </q-card>
+  </q-dialog>
 </template>
 <script setup>
 import {
@@ -144,7 +173,7 @@ import {
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import moment from 'moment/moment';
-import { type_works, TYPE_WORK_PROJECT } from 'src/pages/services/time_tracking/type_works.js';
+import MarkdownIt from 'markdown-it';
 import { getObject } from 'src/pages/services/time_tracking/fun.js';
 import Button from 'src/components/InputButton.vue';
 import PPLoading from 'src/components/PPLoading.vue';
@@ -158,12 +187,15 @@ import InputDate from 'src/components/InputDate.vue';
 
 const load = ref(false);
 const isUpdateInProgress = ref(false);
+const md = new MarkdownIt();
 document.title = 'Таблицы';
-
+const aiReport = ref(false);
+const loadReport = ref(true);
+const messages = ref([]);
 const route = useRoute();
 const router = useRouter();
 const { id } = route.params;
-
+const dataPrompt = ref('');
 const props = defineProps({
   showInfo: Function,
   showConfirm: Function,
@@ -176,6 +208,7 @@ const table = ref(null);
 const branches = ref([]);
 const projects = ref([]);
 const sources = ref([]);
+const type_works = ref([]);
 const activities = ref([]);
 const records = ref([]);
 const fields = ref([]);
@@ -250,7 +283,6 @@ function getCustomStyle(row, col) {
   try {
     if (curentConfig.value.cols.length > 0) {
       const findColFromConf = curentConfig.value.cols.find((c) => c.field === col);
-
       const field = fields.value.find((f) => f.name === col);
       if (field.type === TT_TYPE_FLAG) {
         if (row[col] === true) {
@@ -381,7 +413,7 @@ const columnsPerm = [
     field: (row) => row.type_work.name,
     edit: true,
     type: 'selector',
-    options: () => type_works,
+    options: () => type_works.value,
     style: 'min-width: 170px; max-width: 170px;',
   },
   {
@@ -392,7 +424,7 @@ const columnsPerm = [
     field: (row) => (row.type_activity ? row.type_activity.name : ''),
     edit: true,
     type: 'selector',
-    options: (row) => (row.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value),
+    options: (row) => (row.type_work.id === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value),
     style: 'min-width: 170px; max-width: 170px;',
   },
   {
@@ -588,8 +620,8 @@ function requestRecords(callback) {
         ...rec,
         branch: getObject(branches.value, rec.branch),
         user: getObject(users.value, rec.user),
-        type_work: getObject(type_works, rec.type_work),
-        type_activity: getObject(rec.type_work === TYPE_WORK_PROJECT ? projects.value : activities.value, rec.type_activity),
+        type_work: getObject(type_works.value, rec.type_work),
+        type_activity: getObject(rec.type_work === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value, rec.type_activity),
         type_source: getObject(sources.value, rec.type_source),
         type_product: getObject(type_product, rec.type_product),
         createdRaw: rec.createdAt,
@@ -617,7 +649,8 @@ function requestRecords(callback) {
       console.log(err);
       load.value = false;
       isUpdateInProgress.value = false;
-      props.showError('Ошибка загрузки данных');
+      props.authStore.removeFavorite(route.fullPath);
+      props.showError('Конфигурация не найдена');
     });
 }
 function update(callback) {
@@ -652,7 +685,7 @@ function update(callback) {
       // установка фильтра тип работы
       inputFilter.value.type_works.length = 0;
       inputFilter.value.type_works.push(OPTION_ALL);
-      inputFilter.value.type_works.push(...type_works);
+      inputFilter.value.type_works.push(...type_works.value);
       if (curentConfig.value.filters) inputFilter.value.type_work = getObject(inputFilter.value.type_works, getItem('filter_type_work'));
       else inputFilter.value.type_work = getObject(inputFilter.value.type_works, curentConfig.value.filter_type_work);
       if (!inputFilter.value.type_work) inputFilter.value.type_work = getObject(inputFilter.value.type_works, -1);
@@ -680,7 +713,7 @@ function update(callback) {
               if (!inputFilter.value.branch) inputFilter.value.branch = getObject(inputFilter.value.branches, -1);
               inputFilter.value.activities.length = 0;
               inputFilter.value.activities.push(OPTION_ALL);
-              inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
+              inputFilter.value.activities.push(...(inputFilter.value.type_work.id === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value));
               if (curentConfig.value.filters) inputFilter.value.type_activity = getObject(inputFilter.value.activities, getItem('filter_activity'));
               else inputFilter.value.type_activity = getObject(inputFilter.value.activities, curentConfig.value.filter_type_activity);
               users.value.length = 0;
@@ -827,7 +860,7 @@ function debouncedSave(id, col, value) {
 function updateFilterTypeWork() {
   inputFilter.value.activities.length = 0;
   inputFilter.value.activities.push(OPTION_ALL);
-  inputFilter.value.activities.push(...(inputFilter.value.type_work.id === TYPE_WORK_PROJECT ? projects.value : activities.value));
+  inputFilter.value.activities.push(...(inputFilter.value.type_work.id === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value));
   if (inputFilter.value.type_work.id === -1) {
     [inputFilter.value.type_activity] = inputFilter.value.activities;
   }
@@ -852,7 +885,7 @@ function updateInputFilter() {
 
 function updateTypeWork(row) {
   const typeWId = row.type_work.id;
-  [row.type_activity] = typeWId === TYPE_WORK_PROJECT ? projects.value : activities.value;
+  [row.type_activity] = typeWId === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value;
   const typeAId = row.type_activity.id;
   save(row.id, 'type_work', typeWId);
   save(row.id, 'type_activity', typeAId);
@@ -868,41 +901,76 @@ function returnSelectedInfo() {
   ${selected.value.length} из ${table.value.filteredSortedRows.length}; Общее время: ${sum} мин (${(sum / 60).toFixed(1)} ч); Среднее время: ${average.toFixed(1)} мин (${(average / 60).toFixed(1)} ч);
   Максимальное время: ${max} мин (${(max / 60).toFixed(1)} ч);`;
 }
+const getDataFormattedTable = () => {
+  return table.value.filteredSortedRows.map((r) => {
+    const e = { ...r };
+    columns.value.forEach((col) => {
+      e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
+      if (col.type === 'checkbox') {
+        e[col.name] = e[col.name] === true ? '✓' : '';
+      }
+    });
+    return e;
+  });
+}
 function exportReport() {
   const data = {
     dateStart: inputFilter.value.dateStart,
     dateFinish: inputFilter.value.dateFinish,
     columns: columns.value,
-    rows: table.value.filteredSortedRows.map((r) => {
-      const e = { ...r };
-      columns.value.forEach((col) => {
-        e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
-        if (col.type === 'checkbox') {
-          e[col.name] = e[col.name] === true ? '✓' : '';
-        }
-      });
-      return e;
-    }),
+    rows: getDataFormattedTable(),
     prefix: 'data',
   };
   props.authStore.downloadExcel('export/excel', data).catch((err) => {
     console.log(err);
   });
 }
+function generateReport() {
+  if (curentConfig.value.prompt) {
+    loadReport.value = true;
+    dataPrompt.value = `${curentConfig.value.prompt}; Таблица с данными в формате CSV таблицы: ${props.authStore.jsonToCsv(getDataFormattedTable())}`;
+    aiReport.value = true;
+
+    props.authStore.authorizedRequest('post', 'ai/generate', { prompt: dataPrompt.value }).then((res) => {
+      // Рендерим Markdown в HTML
+      const htmlContent = md.render(res.data.response);
+      messages.value.length = 0;
+      // Добавляем сообщение с HTML
+      messages.value.push({
+        name: 'ИИ Помощник',
+        text: htmlContent,
+        sent: false,
+        stamp: 'только что',
+        bgColor: 'grey-2'
+      });
+
+      loadReport.value = false;
+    }).catch((err) => {
+      console.log(err);
+      loadReport.value = false;
+    });
+  }
+}
 onMounted(() => {
-  props.authStore.authorizedRequest('get', `configs/${id}`).then((respConf) => {
-    const conf = respConf.data[0];
-    conf.allow_views = JSON.parse(conf.allow_views);
-    conf.allow_creates = JSON.parse(conf.allow_creates);
-    conf.allow_delete = JSON.parse(conf.allow_delete);
-    conf.allow_edit = JSON.parse(conf.allow_edit);
-    conf.cols = JSON.parse(conf.cols);
-    curentConfig.value = conf;
-    document.title = curentConfig.value.name;
-    update();
+  props.authStore.authorizedRequest('get', 'all_type_works').then((respTW) => {
+    type_works.value.length = 0;
+    type_works.value.push(...respTW.data);
+    props.authStore.authorizedRequest('get', `configs/${id}`).then((respConf) => {
+      const conf = respConf.data[0];
+      conf.allow_views = JSON.parse(conf.allow_views);
+      conf.allow_creates = JSON.parse(conf.allow_creates);
+      conf.allow_delete = JSON.parse(conf.allow_delete);
+      conf.allow_edit = JSON.parse(conf.allow_edit);
+      conf.cols = JSON.parse(conf.cols);
+      curentConfig.value = conf;
+      document.title = curentConfig.value.name;
+      update();
+    }).catch(() => {
+      props.showError('Ошибка загрузки конфигурации');
+    });
   }).catch(() => {
-    props.showError('Ошибка загрузки конфигурации');
-  })
+    props.showError('Ошибка загрузки типов работы');
+  });
 });
 onUnmounted(() => {
   Object.values(debounceTimers).forEach((timer) => clearTimeout(timer));
