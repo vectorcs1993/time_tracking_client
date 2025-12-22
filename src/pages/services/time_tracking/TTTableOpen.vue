@@ -83,9 +83,9 @@
       </div>
     </template>
     <template v-slot:body-cell="props">
-      <q-td :props="props" class="no-pa-ma" :style="`background-color: ${getCustomStyle(props.row, props.col.name)};`">
-        <div class="text-size row fit justify-center items-center"
-          style="white-space: pre-wrap; padding: 10px; overflow: hidden;">
+      <q-td :props="props"
+        :style="`background-color: ${getCustomStyle(props.row, props.col.name)}; height: fit-content;`">
+        <div class="text-size row fit justify-center items-center" style="white-space: pre-line;  overflow: hidden;">
           <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
             <InputCheckbox :disable="!isAllowEdit(props.row.id, props.col.name)" v-model="props.row[props.col.name]"
               :dark="props.dark" @update:model-value="(val) => {
@@ -100,7 +100,7 @@
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
-          <span class="fit" style="overflow: hidden;"
+          <span class="fit"
             v-else-if="(props.col.type == 'text' || props.col.type == 'textarea') && isAllowEdit(props.row.id, props.col.name)">
             <InputText v-if="activeRowId === props.row.id" cell :type="props.col.type" input-style="text-align: center;"
               v-model="props.row[props.col.name]" :dark="props.dark" @update:model-value="(val) => {
@@ -126,7 +126,7 @@
               }" />
             <span v-else>{{ props.value }}</span>
           </span>
-          <span v-else style="white-space: pre-wrap; padding: 0px;">
+          <span v-else style="white-space: pre-line; overflow: hidden; padding: 10px;">
             {{ props.value }}
           </span>
         </div>
@@ -200,7 +200,6 @@ const props = defineProps({
   showInfo: Function,
   showConfirm: Function,
   showError: Function,
-  contentHeight: Number,
   dark: Boolean,
   authStore: Object,
 });
@@ -303,7 +302,7 @@ function isAllowEdit(_id, _col, needSelect = false) {
     if (curentConfig.value.cols.length > 0) {
       const changeRow = (needSelect ? selected.value.length > 0 : true) && curentConfig.value.allow_edit.find((b) => b === props.authStore.getUser.branch) !== undefined;
       const findColFromConf = curentConfig.value.cols.find((c) => c.field === _col);
-      const changeCol = findColFromConf.allow_edit.find((ae) => ae === props.authStore.getUser.branch) !== undefined;
+      const changeCol = findColFromConf?.allow_edit.find((ae) => ae === props.authStore.getUser.branch) !== undefined;
       if (_id !== undefined) {
         return changeRow && changeCol && (curentConfig.value.changeOnlySome ? (records.value.find((t) => t.id === _id).user.id === users.value.find((u) => u.email === props.authStore.getUser.email).id) : true);
       }
@@ -424,7 +423,9 @@ const columnsPerm = [
     field: (row) => (row.type_activity ? row.type_activity.name : ''),
     edit: true,
     type: 'selector',
-    options: (row) => (row.type_work.id === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value),
+    options: (row) => {
+      return row.type_work.id === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value
+    },
     style: 'min-width: 170px; max-width: 170px;',
   },
   {
@@ -613,15 +614,14 @@ function requestRecords(callback) {
     }&type_activity=${inputFilter.value.type_activity.id
     }&user=${inputFilter.value.user.id
     }&dS=${inputFilter.value.dateStart
-    }&dF=${inputFilter.value.dateFinish}
-    &columns=${columns.value.map((c) => c.name).join(',')}`).then((res) => {
-
+    }&dF=${inputFilter.value.dateFinish
+    }&columns=${columns.value.map((c) => c.name).join(',')}`).then((res) => {
       records.value.push(...res.data.map((rec) => ({
         ...rec,
         branch: getObject(branches.value, rec.branch),
         user: getObject(users.value, rec.user),
-        type_work: getObject(type_works.value, rec.type_work),
-        type_activity: getObject(rec.type_work === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value, rec.type_activity),
+        type_work: type_works.value.find((tw) => tw.id === rec.type_work),
+        type_activity: (rec.type_work === props.authStore.TYPE_WORK_PROJECT ? projects.value : activities.value).find((ta) => ta.id === rec.type_activity),
         type_source: getObject(sources.value, rec.type_source),
         type_product: getObject(type_product, rec.type_product),
         createdRaw: rec.createdAt,
@@ -675,6 +675,10 @@ function update(callback) {
     columns.value.length = 0;
     props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
       fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
+      // если столбец тип работы скрыт по настройками фильтров
+      if (curentConfig.value.filter_type_work !== -1) columns.value.push(columnsPerm.find((c) => c.name === 'type_work'));
+      // если столбец тип активности скрыт по настройками фильтров
+      if (curentConfig.value.filter_type_activity !== -1) columns.value.push(columnsPerm.find((c) => c.name === 'type_activity'));
       // формирование столбцов
       curentConfig.value.cols.forEach((col) => {
         const findCol = columnsPerm.find((c) => c.name === col.field);

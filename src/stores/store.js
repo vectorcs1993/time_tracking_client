@@ -466,6 +466,7 @@ export const useAuthStore = defineStore('auth', {
       this.refresh = null;
       this.user = null;
       this.refreshPromise = null;
+      this.favorites.length = 0;
 
       localStorage.removeItem(process.env.LOCAL_STORAGE_NAME_TOKEN);
       localStorage.removeItem(process.env.LOCAL_STORAGE_NAME_TOKEN_REFRESH);

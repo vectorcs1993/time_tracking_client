@@ -89,7 +89,7 @@ const routes = [
         path: '/daily_reports', component: () => import('src/pages/services/time_tracking/TTDailyReports.vue'),
         meta: {
           requiresAuth: true,
-          allowedRoles: [0, 1],
+          allowedRoles: [1],
         },
       },
       { path: '/login', component: () => import('src/pages/LoginPage.vue') },

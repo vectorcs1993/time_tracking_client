@@ -189,7 +189,6 @@ const props = defineProps({
   showInfo: Function,
   dark: Boolean,
   authStore: Object,
-  contentHeight: Number,
 });
 const splitter = ref(20);
 const bufferTable = ref([]);

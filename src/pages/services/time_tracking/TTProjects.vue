@@ -88,7 +88,6 @@ const props = defineProps({
   showError: Function,
   showConfirm: Function,
   showInfo: Function,
-  contentHeight: Number,
   dark: Boolean,
   authStore: Object,
 });

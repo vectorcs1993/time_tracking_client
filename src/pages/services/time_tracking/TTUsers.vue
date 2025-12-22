@@ -109,7 +109,13 @@
         <div
           :class="`text-size q-pa-xs row fit justify-${props.col.align === 'center' ? 'center' : 'start'} items-center`"
           style="white-space: pre-wrap; min-height: 48px;">
-          <span v-if="props.col.type == 'selector'">
+          <span v-if="props.col.type == 'checkbox'" style="font-size: 24px;">
+            <InputCheckbox :disable="!isEdit(props.row)" v-model="props.row[props.col.name]" :dark="props.dark"
+              @update:model-value="(val) => {
+                save(props.row.id, props.col.name, val);
+              }" />
+          </span>
+          <span v-else-if="props.col.type == 'selector'">
             <InputSelect v-if="activeRowId === props.row.id && isEdit(props.row)" cell
               v-model="props.row[props.col.name]" :options="props.col.options(props.row)" :dark="props.dark"
               @update:model-value="(val) => {
@@ -193,6 +199,7 @@ import TTInputTextSingle from 'src/components/InputText.vue';
 import TTCheckbox from 'src/components/InputCheckbox.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 import InputSelect from 'src/components/InputSelect.vue';
+import InputCheckbox from 'src/components/InputCheckbox.vue';
 
 document.title = 'Пользователи';
 const props = defineProps({
@@ -201,7 +208,6 @@ const props = defineProps({
   showInfo: Function,
   dark: Boolean,
   authStore: Object,
-  contentHeight: Number,
 });
 
 

@@ -28,21 +28,21 @@
                       Роль:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getRole.name
-                    }}</q-badge>
+                      }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div>
                       Группа:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name
-                      }}</q-badge>
+                    }}</q-badge>
                   </div>
-                  <div class="row justify-between items-center">
+                  <!-- <div class="row justify-between items-center">
                     <div class="col">
                       Ночной режим:
                     </div>
                     <q-toggle v-model="dark" :color="dark ? 'orange' : 'green'" @update:model-value="updateTheme" />
-                  </div>
+                  </div> -->
                   <div align="right">
                     <Button label="Выход" @click="logout" :dark="dark" />
                   </div>
@@ -72,6 +72,7 @@
             <q-item-section>
               {{ menuItem.label }}
             </q-item-section>
+            <TTTooltip :dark="dark"> {{ menuItem.label }}</TTTooltip>
           </q-item>
         </template>
         <!-- Разделитель, если есть избранное -->
@@ -89,6 +90,7 @@
             <q-item-section>
               {{ favorite.name }}
             </q-item-section>
+            <TTTooltip :dark="dark">{{ favorite.name }}</TTTooltip>
           </q-item>
         </template>
       </q-list>
@@ -96,7 +98,7 @@
     <q-page-container @click="() => { showMessage = true; miniState = true; }">
       <router-view :key="route.fullPath" v-slot="{ Component }" :authStore="authStore" :showError="showError"
         :showInfo="showInfo" :showConfirm="showConfirm" :dark="dark" :debug="debug" :branch="branch" :load="load"
-        :login="login" :logout="logout" contentHeight="840">
+        :login="login" :logout="logout">
         <component :is="Component"
           v-bind="{ authStore, showError, showInfo, showConfirm, dark, debug, branch, load, login, logout }">
           <template #favorite>
@@ -141,12 +143,13 @@ import Button from 'src/components/InputButton.vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
+import TTTooltip from 'src/components/TTTooltip.vue';
 
 const root = document.documentElement;
 
 const currentTextSize = ref(localStorage.getItem('text-size') ? Number(localStorage.getItem('text-size')) : 14);
-//
-const dark = ref(localStorage.getItem('bg-color') ? localStorage.getItem('bg-color') === 'true' : true);
+// localStorage.getItem('bg-color') ? localStorage.getItem('bg-color') === 'true' : true
+const dark = ref(true);
 
 // диалог ошибки
 const de = ref(null);
@@ -258,8 +261,12 @@ function login(data) {
   authStore.login(data).then(() => {
     leftDrawerOpen.value = true;
     authStore.fetchUser().then(() => router.push('/home'));
-  }).catch(() => {
-    showError('Ошибка авторизации');
+  }).catch((err) => {
+    if (err.status === 404) showError('Пользователь не найден');
+    else if (err.status === 400) showError('Отсутствуют данные для авторизации');
+    else if (err.status === 422) showError('Ошибка доступа');
+    else if (err.status === 403) showError('Неверный пароль');
+    else showError('Ошибка авторизации');
   }).finally(() => load(false));
 }
 function logout() {

@@ -7,7 +7,7 @@
         <q-space />
         <q-btn dense square flat icon="close" v-close-popup />
       </q-bar>
-      <q-card-section style="max-height: 60vh; overflow-y: scroll;" :dark="dark"
+      <q-card-section style="max-height: 60vh; overflow-y: auto;" :dark="dark"
         :class="`${dark ? 'pp-dark' : 'pp-light'}`">
         <span style="white-space: pre-line; ">{{ text }}</span>
       </q-card-section>
