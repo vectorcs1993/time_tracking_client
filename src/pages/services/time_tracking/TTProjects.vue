@@ -51,22 +51,16 @@
         </div>
       </q-td>
     </template>
-    <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
-    <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
   </q-table>
   <PPDialog label="Новый проект" v-model="dialogAdd" :dark="props.dark" styleContent="width: 400px;">
-    <q-card-section>
-      <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
+    <q-card-section class="q-gutter-sm">
+      <TTInputTextSingle label="Наименование" required :dark="props.dark" v-model="modelInput.name" />
       <Button label="Создать" :disable="!modelInput.name" :dark="props.dark" @click="add" />
     </q-card-section>
   </PPDialog>
 
   <PPDialog label="Изменение проекта" v-model="dialogUpdate" :dark="props.dark" styleContent="width: 400px;">
-    <q-card-section>
+    <q-card-section class="q-gutter-sm">
       <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
       <Button label="Изменить" :disable="!modelInput.name" :dark="props.dark" @click="change" />
     </q-card-section>
@@ -79,7 +73,6 @@ import {
 } from 'vue';
 import Button from 'src/components/InputButton.vue';
 import TTInputTextSingle from 'src/components/InputText.vue';
-import TTCheckbox from 'src/components/InputCheckbox.vue';
 import PPDialog from 'src/components/PPDialog.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 

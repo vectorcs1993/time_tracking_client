@@ -152,12 +152,6 @@
               </div>
             </q-th>
           </template>
-          <template v-slot:header-selection="props">
-            <Checkbox v-model="props.selected" :dark="props.dark" />
-          </template>
-          <template v-slot:body-selection="props">
-            <Checkbox v-model="props.selected" :dark="props.dark" />
-          </template>
         </q-table>
       </div>
     </template>

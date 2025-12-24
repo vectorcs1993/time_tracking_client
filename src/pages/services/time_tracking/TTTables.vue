@@ -25,10 +25,11 @@
         align: 'center',
         field: 'description',
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :loading="load" color="orange"
-    binary-state-sort :hide-pagination="false" v-model:pagination="pagination" separator="cell"
-    :rows-per-page-options="[1]" grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected"
-    @row-click="selectRow" @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :loading="load"
+    :color="`${props.dark ? 'orange' : 'green'}`" binary-state-sort :hide-pagination="false"
+    v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header no-data-label="Нет данных"
+    :filter="filter" v-model:selected="selected" @row-click="selectRow"
+    @row-dblclick="router.push(`/table/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
         <div class="text-h6">
@@ -66,31 +67,14 @@
         </div>
       </q-td>
     </template>
-    <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
-    <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
   </q-table>
-  <q-dialog v-model="dialogAdd" persistent>
-    <q-card :class="`${props.dark ? 'pp-dark' : 'pp-light'}`" :dark="props.dark" class="text-white q-pt-none"
-      style="width: 400px; max-width: 95vw;">
-      <q-bar :class="`${props.dark ? 'bg-header-dark' : 'bg-header-light'} text-white`" :dark="props.dark">
-        <div class="text-h6">Новая конфигурация таблицы</div>
-        <q-space />
-        <q-btn dense flat icon="close" v-close-popup>
-          <q-tooltip>Закрыть</q-tooltip>
-        </q-btn>
-      </q-bar>
-      <q-card-section :class="`${props.dark ? 'pp-dark' : 'pp-light'}`" :dark="props.dark">
-        <form @submit.prevent="add">
-          <PPInputSingle :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
-          <Button :dark="props.dark" class="q-ma-md" type="submit">Создать</Button>
-        </form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+
+  <PPDialog v-model="dialogAdd" label="Новая таблица" :dark="props.dark" styleContent="width: 400px;">
+    <q-card-section class="q-gutter-sm">
+      <InputText :dark="props.dark" required v-model="modelInput.name" type="text" placeholder="Наименование" />
+      <Button label="Создать" :disable="!modelInput.name" :dark="props.dark" @click="add" />
+    </q-card-section>
+  </PPDialog>
 </template>
 <script setup>
 import {
@@ -99,11 +83,10 @@ import {
 } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'src/components/InputButton.vue';
-import PPInputSingle from 'src/components/inputs/PPInputSingle.vue';
-import TTCheckbox from 'src/components/InputCheckbox.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 import { OPTION_ALL } from './fun';
-
+import InputText from 'src/components/InputText.vue';
+import PPDialog from 'src/components/PPDialog.vue';
 document.title = 'Выбор таблицы';
 
 const props = defineProps({

@@ -11,9 +11,9 @@
         style: 'min-width: 500px',
         edit: false,
       },
-    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" binary-state-sort
-    :color="`${props.dark ? 'orange' : 'green'}`" :hide-pagination="false" v-model:pagination="pagination"
-    separator="cell" :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
+    ]" row-key="id" :color="`${props.dark ? 'orange' : 'green'}`" virtual-scroll :hide-selected-banner="true"
+    selection="single" binary-state-sort :hide-pagination="false" v-model:pagination="pagination" separator="cell"
+    :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" :filter="filter"
     v-model:selected="selected" @row-click="selectRow" :loading="load" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="fit q-gutter-sm">
@@ -51,12 +51,6 @@
         </div>
       </q-td>
     </template>
-    <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
-    <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
   </q-table>
   <PPDialog label="Новая активность" v-model="dialogAdd" :dark="props.dark" styleContent="width: 400px;">
     <q-card-section>
@@ -74,7 +68,6 @@
 <script setup>
 import Button from 'src/components/InputButton.vue';
 import TTInputTextSingle from 'src/components/InputText.vue';
-import TTCheckbox from 'src/components/InputCheckbox.vue';
 import PPDialog from 'src/components/PPDialog.vue';
 import {
   ref,

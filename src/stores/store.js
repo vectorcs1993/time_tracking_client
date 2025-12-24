@@ -5,7 +5,6 @@ import moment from 'moment';
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem(process.env.LOCAL_STORAGE_NAME_TOKEN) || null,
-    refresh: localStorage.getItem(process.env.LOCAL_STORAGE_NAME_TOKEN_REFRESH) || null,
     user: null,
     branch: null,
     role: null,
@@ -21,40 +20,15 @@ export const useAuthStore = defineStore('auth', {
     TYPE_DAILY_REPORT_BEFORE: 0,
     TYPE_DAILY_REPORT_AFTER: 1,
     type_roles: [],
-    type_period: [
-      {
-        id: 0,
-        name: 'Выбрать период',
-      },
-      {
-        id: 1,
-        name: 'Сегодня',
-      },
-      {
-        id: 3,
-        name: 'Вчера',
-      },
-      {
-        id: 4,
-        name: 'Последние 7 дней',
-      },
-      {
-        id: 5,
-        name: 'Последние 30 дней',
-      },
-      {
-        id: 7,
-        name: 'Последние 90 дней',
-      },
-      {
-        id: 6,
-        name: 'Последние 180 дней',
-      },
-      {
-        id: 2,
-        name: 'Все данные',
-      },
-    ],
+    PERIOD_SELECT: 0,
+    PERIOD_ALL: 2,
+    PERIOD_TODAY: 1,
+    PERIOD_YESTERDAY: 3,
+    PERIOD_7: 4,
+    PERIOD_14: 8,
+    PERIOD_30: 5,
+    PERIOD_90: 7,
+    PERIOD_180: 6,
     datetimeFormat: 'YYYY-MM-DD',
   }),
 
@@ -64,7 +38,44 @@ export const useAuthStore = defineStore('auth', {
     getUser: (state) => state.user,
     getBranch: (state) => state.branch,
     getRole: (state) => state.role,
-    getTypesPeriod: (state) => state.type_period,
+    getTypesPeriod: (state) => [
+      {
+        id: state.PERIOD_SELECT,
+        name: 'Выбрать период',
+      },
+      {
+        id: state.PERIOD_TODAY,
+        name: 'Сегодня',
+      },
+      {
+        id: state.PERIOD_YESTERDAY,
+        name: 'Вчера',
+      },
+      {
+        id: state.PERIOD_7,
+        name: 'Последние 7 дней',
+      },
+      {
+        id: state.PERIOD_14,
+        name: 'Последние 14 дней',
+      },
+      {
+        id: state.PERIOD_30,
+        name: 'Последние 30 дней',
+      },
+      {
+        id: state.PERIOD_90,
+        name: 'Последние 90 дней',
+      },
+      {
+        id: state.PERIOD_180,
+        name: 'Последние 180 дней',
+      },
+      {
+        id: state.PERIOD_ALL,
+        name: 'Все данные',
+      },
+    ],
     getFavorites: (state) => state.favorites,
   },
 
@@ -84,10 +95,21 @@ export const useAuthStore = defineStore('auth', {
       const end = moment(endDate);
       return checkDate.isBetween(start, end, null, '[]');
     },
+    getCountDaysFromPeriod(dateStart, dateFinish) {
+      const startDate = moment(dateStart);
+      const endDate = moment(dateFinish);
+      if (!startDate.isValid() || !endDate.isValid()) {
+        console.error('Invalid date format');
+        return 0;
+      }
+      const daysCount = endDate.diff(startDate, 'days');
+      return daysCount;
+    },
     getDatePeriod(period, dateStart, dateFinish) {
       const day = moment();
       const yesterday = day.clone().subtract(1, 'days');
       const yesterday7 = day.clone().subtract(7, 'days');
+      const yesterday14 = day.clone().subtract(14, 'days');
       const yesterday30 = day.clone().subtract(30, 'days');
       const yesterday90 = day.clone().subtract(90, 'days');
       const yesterday180 = day.clone().subtract(180, 'days');
@@ -109,6 +131,9 @@ export const useAuthStore = defineStore('auth', {
         dateFinish = day.format(this.datetimeFormat);
       } else if (period === 7) { // 90 дней
         dateStart = yesterday90.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === 8) { // 14 дней
+        dateStart = yesterday14.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
       } else if (period === 2) { // все данные
         dateStart = 'null';
@@ -257,56 +282,24 @@ export const useAuthStore = defineStore('auth', {
 
       return emergencyLabel;
     },
-    // Инициализация store при загрузке приложения
-    initializeStore() {
-
-      // Синхронизируем state с localStorage
-      const storedToken = localStorage.getItem(process.env.LOCAL_STORAGE_NAME_TOKEN);
-      const storedRefresh = localStorage.getItem(process.env.LOCAL_STORAGE_NAME_TOKEN_REFRESH);
-
-      if (storedToken && this.token !== storedToken) {
-        this.token = storedToken;
-      }
-
-      if (storedRefresh && this.refresh !== storedRefresh) {
-        this.refresh = storedRefresh;
-      }
-
-      // Устанавливаем заголовок для axios
-      if (this.token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-      }
-    },
     setToken(token) {
       this.token = token;
       localStorage.setItem(process.env.LOCAL_STORAGE_NAME_TOKEN, token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    },
-    setRefreshToken(refresh) {
-      this.refresh = refresh;
-      localStorage.setItem(process.env.LOCAL_STORAGE_NAME_TOKEN_REFRESH, refresh);
     },
     async refreshToken() {
       if (this.refreshPromise) {
         return this.refreshPromise;
       }
 
-      if (!this.refresh) {
-        throw new Error('No refresh token available');
-      }
-
       try {
-        this.refreshPromise = api.post('/refresh', { refresh: this.refresh });
+        this.refreshPromise = api.post('/refresh');
 
         const response = await this.refreshPromise;
 
-        const { token, refresh } = response.data;
+        const { token } = response.data;
 
         this.setToken(token);
-
-        if (refresh) {
-          this.setRefreshToken(refresh);
-        }
 
         return token;
       } catch (error) {
@@ -388,8 +381,11 @@ export const useAuthStore = defineStore('auth', {
     },
     async initializeApp() {
 
-      // Сначала инициализируем store
-      this.initializeStore();
+      // Синхронизируем state с localStorage
+      const storedToken = localStorage.getItem(process.env.LOCAL_STORAGE_NAME_TOKEN);
+      if (storedToken && this.token !== storedToken) this.token = storedToken;
+      // Устанавливаем заголовок для axios
+      if (this.token) api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
 
       if (this.isAuthenticated && !this.user) {
         try {
@@ -410,13 +406,9 @@ export const useAuthStore = defineStore('auth', {
     },
     async login(credentials) {
       const response = await api.post('/login', credentials);
-      const { token, refresh, user } = response.data;
+      const { token, user } = response.data;
       this.user = user;
       this.setToken(token);
-
-      if (refresh) {
-        this.setRefreshToken(refresh);
-      }
       return response.data;
     },
     // Добавить в избранное по пути
@@ -463,7 +455,6 @@ export const useAuthStore = defineStore('auth', {
     // Выносим очистку данных в отдельный метод
     clearAuthData() {
       this.token = null;
-      this.refresh = null;
       this.user = null;
       this.refreshPromise = null;
       this.favorites.length = 0;

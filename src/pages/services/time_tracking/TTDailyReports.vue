@@ -25,12 +25,13 @@
     <template v-slot:before>
       <q-table ref="tableBefore" dense
         :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-        :dark="props.dark" square flat :rows="rowsBefore" :columns="columns" row-key="id" virtual-scroll wrap-cells
-        :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
-        :hide-header="load" selection="multiple" binary-state-sort :loading="load" :hide-pagination="false"
-        v-model:pagination="pagination" separator="cell" :rows-per-page-options="[0]" no-data-label="Нет данных"
-        grid-header :filter="inputFilter.search" v-model:selected="selectedBefore" column-sort-order="da"
-        style="height: 100%;" @row-click="(evt, row) => activeRowIdBefore = row.id">
+        :color="`${props.dark ? 'orange' : 'green'}`" :dark="props.dark" square flat :rows="rowsBefore"
+        :columns="columns" row-key="id" virtual-scroll wrap-cells :virtual-scroll-item-size="48"
+        :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true" :hide-header="load" selection="multiple"
+        binary-state-sort :loading="load" :hide-pagination="false" v-model:pagination="pagination" separator="cell"
+        :rows-per-page-options="[0]" no-data-label="Нет данных" grid-header :filter="inputFilter.search"
+        v-model:selected="selectedBefore" column-sort-order="da" style="height: 100%;"
+        @row-click="(evt, row) => activeRowIdBefore = row.id">
         <template v-slot:loading>
           <PPLoading v-model="load" :dark="props.dark" />
         </template>
@@ -55,12 +56,6 @@
               {{ props.col.label }}
             </div>
           </q-th>
-        </template>
-        <template v-slot:header-selection="props">
-          <InputCheckbox v-model="props.selected" :dark="props.dark" />
-        </template>
-        <template v-slot:body-selection="props">
-          <InputCheckbox v-model="props.selected" :dark="props.dark" />
         </template>
         <template v-slot:pagination>
         </template>
@@ -121,12 +116,13 @@
     <template v-slot:after>
       <q-table ref="tableAfter" dense
         :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-        :dark="props.dark" square flat :rows="rowsAfter" :columns="columns" row-key="id" virtual-scroll wrap-cells
-        :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
-        :hide-header="load" selection="multiple" binary-state-sort :loading="load" :hide-pagination="false"
-        v-model:pagination="pagination" separator="cell" :rows-per-page-options="[0]" no-data-label="Нет данных"
-        grid-header :filter="inputFilter.search" v-model:selected="selectedAfter" column-sort-order="da"
-        style="height: 100%;" @row-click="(evt, row) => activeRowIdAfter = row.id">
+        :color="`${props.dark ? 'orange' : 'green'}`" :dark="props.dark" square flat :rows="rowsAfter"
+        :columns="columns" row-key="id" virtual-scroll wrap-cells :virtual-scroll-item-size="48"
+        :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true" :hide-header="load" selection="multiple"
+        binary-state-sort :loading="load" :hide-pagination="false" v-model:pagination="pagination" separator="cell"
+        :rows-per-page-options="[0]" no-data-label="Нет данных" grid-header :filter="inputFilter.search"
+        v-model:selected="selectedAfter" column-sort-order="da" style="height: 100%;"
+        @row-click="(evt, row) => activeRowIdAfter = row.id">
         <template v-slot:loading>
           <PPLoading v-model="load" :dark="props.dark" />
         </template>
@@ -151,12 +147,6 @@
               {{ props.col.label }}
             </div>
           </q-th>
-        </template>
-        <template v-slot:header-selection="props">
-          <InputCheckbox v-model="props.selected" :dark="props.dark" />
-        </template>
-        <template v-slot:body-selection="props">
-          <InputCheckbox v-model="props.selected" :dark="props.dark" />
         </template>
         <template v-slot:pagination>
         </template>

@@ -1,10 +1,10 @@
 <template>
-  <q-table v-if="isAllowView(curentConfig)" ref="table" dense
+  <q-table v-if="isAllowView(curentConfig)" ref="table" dense :color="`${props.dark ? 'orange' : 'green'}`"
     :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer q-pa-none q-ma-none`"
-    :dark="props.dark" square flat :rows="records" :columns="columns" row-key="id" virtual-scroll wrap-cells
+    :dark="props.dark" square flat :rows="records" :columns="visibleColumns" row-key="id" virtual-scroll wrap-cells
     :virtual-scroll-item-size="48" :virtual-scroll-sticky-size-start="32" :hide-selected-banner="true"
     :hide-header="load" selection="multiple" binary-state-sort :loading="load" :hide-pagination="false"
-    v-model:pagination="pagination" separator="cell" :rows-per-page-options="[0]" no-data-label="Нет данных" grid-header
+    v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" no-data-label="Нет данных" grid-header
     :filter="inputFilter.search" v-model:selected="selected" column-sort-order="da" style="height: 90vh;"
     @row-click="onRowClick">
     <template v-slot:loading>
@@ -18,11 +18,11 @@
           {{ curentConfig.name }}
         </div>
         <q-space />
-        <Button label="Обновить" icon="sync" @click="requestRecords" :dark="props.dark" />
+        <Button icon="sync" @click="requestRecords" :dark="props.dark" />
         <Button label="Новая запись" v-if="isAllowCreate()" @click="actionCreate" icon="add" :dark="props.dark" />
-        <Button label="Копировать" v-if="isAllowCreate() && selected.length === 1" icon="content_copy"
-          @click="actionCopy" :dark="props.dark" />
-        <Button label="Удалить" v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
+        <Button v-if="isAllowCreate() && selected.length === 1" icon="content_copy" @click="actionCopy"
+          :dark="props.dark" />
+        <Button v-if="isAllowCreate() && isAllowDeleted()" icon="delete" @click="() => {
           props.showConfirm('Удалить записи?', actionDelete);
         }" :dark="props.dark" />
         <!-- Фильтр группы -->
@@ -52,8 +52,9 @@
         <InputDate label="до" :disable="inputFilter.period.id !== 0" v-model="inputFilter.dateFinish"
           @update:model-value="updateInputFilter" :dark="props.dark" style="width: 200px;" />
         <!-- Поиск -->
-        <InputSearch label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;" />
-        <Button :dark="props.dark" label="Изменить" icon="edit"
+        <InputSearch label="Поиск" v-model="inputFilter.search" :dark="props.dark" style="width: 200px;"
+          @update:model-value="updateInputFilter" />
+        <Button v-if="props.authStore.isAdministrator" :dark="props.dark" label="Изменить" icon="edit"
           @click="() => router.push(`/configurations/table/${curentConfig.id}`)" />
       </q-card-actions>
     </template>
@@ -63,12 +64,6 @@
           {{ props.col.label }}
         </div>
       </q-th>
-    </template>
-    <template v-slot:header-selection="props">
-      <InputCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
-    <template v-slot:body-selection="props">
-      <InputCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
     <template v-slot:pagination>
       <div class="row q-gutter-sm items-center">
@@ -592,6 +587,7 @@ const columnsPerm = [
   },
 ];
 const columns = ref([]);
+const visibleColumns = ref([]);
 function getItem(val) {
   if (localStorage.getItem(val) === null || localStorage.getItem(val) === undefined) {
     return -1;
@@ -599,6 +595,7 @@ function getItem(val) {
   return Number(localStorage.getItem(val));
 }
 function requestRecords(callback) {
+
   if (isUpdateInProgress.value) return;
 
   isUpdateInProgress.value = true;
@@ -616,6 +613,7 @@ function requestRecords(callback) {
     }&dS=${inputFilter.value.dateStart
     }&dF=${inputFilter.value.dateFinish
     }&columns=${columns.value.map((c) => c.name).join(',')}`).then((res) => {
+
       records.value.push(...res.data.map((rec) => ({
         ...rec,
         branch: getObject(branches.value, rec.branch),
@@ -676,15 +674,18 @@ function update(callback) {
     props.authStore.authorizedRequest('get', `all_fields`).then((respFl) => {
       fields.value.push(...respFl.data.sort((a, b) => (a.name > b.name ? 1 : -1)));
       // если столбец тип работы скрыт по настройками фильтров
-      if (curentConfig.value.filter_type_work !== -1) columns.value.push(columnsPerm.find((c) => c.name === 'type_work'));
+      const tw = columnsPerm.find((c) => c.name === 'type_work');
+      if (curentConfig.value.filter_type_work !== -1) columns.value.push(tw);
       // если столбец тип активности скрыт по настройками фильтров
-      if (curentConfig.value.filter_type_activity !== -1) columns.value.push(columnsPerm.find((c) => c.name === 'type_activity'));
+      const ta = columnsPerm.find((c) => c.name === 'type_activity');
+      if (curentConfig.value.filter_type_activity !== -1) columns.value.push(ta);
       // формирование столбцов
       curentConfig.value.cols.forEach((col) => {
         const findCol = columnsPerm.find((c) => c.name === col.field);
         if (col.name !== undefined && col.name !== '') findCol.label = col.name;
         else findCol.label = findCol.name;
         columns.value.push(findCol);
+        visibleColumns.value.push(findCol);
       });
       // установка фильтра тип работы
       inputFilter.value.type_works.length = 0;
@@ -908,7 +909,7 @@ function returnSelectedInfo() {
 const getDataFormattedTable = () => {
   return table.value.filteredSortedRows.map((r) => {
     const e = { ...r };
-    columns.value.forEach((col) => {
+    visibleColumns.value.forEach((col) => {
       e[col.name] = typeof col.field === 'function' ? col.field(r) : e[col.name];
       if (col.type === 'checkbox') {
         e[col.name] = e[col.name] === true ? '✓' : '';
@@ -921,7 +922,7 @@ function exportReport() {
   const data = {
     dateStart: inputFilter.value.dateStart,
     dateFinish: inputFilter.value.dateFinish,
-    columns: columns.value,
+    columns: visibleColumns.value,
     rows: getDataFormattedTable(),
     prefix: 'data',
   };
@@ -931,29 +932,31 @@ function exportReport() {
 }
 function generateReport() {
   if (curentConfig.value.prompt) {
-    loadReport.value = true;
-    dataPrompt.value = `${curentConfig.value.prompt}; Таблица с данными в формате CSV таблицы: ${props.authStore.jsonToCsv(getDataFormattedTable())}`;
-    aiReport.value = true;
+    const countDays = props.authStore.getCountDaysFromPeriod(inputFilter.value.dateStart, inputFilter.value.dateFinish);
+    if (countDays <= 7) {
+      loadReport.value = true;
+      dataPrompt.value = `${curentConfig.value.prompt}; Таблица с данными в формате CSV таблицы: ${props.authStore.jsonToCsv(getDataFormattedTable())}`;
+      aiReport.value = true;
+      props.authStore.authorizedRequest('post', 'ai/generate', { prompt: dataPrompt.value }).then((res) => {
+        // Рендерим Markdown в HTML
+        const htmlContent = md.render(res.data.response);
+        messages.value.length = 0;
+        // Добавляем сообщение с HTML
+        messages.value.push({
+          name: 'ИИ Помощник',
+          text: htmlContent,
+          sent: false,
+          stamp: 'только что',
+          bgColor: 'grey-2'
+        });
 
-    props.authStore.authorizedRequest('post', 'ai/generate', { prompt: dataPrompt.value }).then((res) => {
-      // Рендерим Markdown в HTML
-      const htmlContent = md.render(res.data.response);
-      messages.value.length = 0;
-      // Добавляем сообщение с HTML
-      messages.value.push({
-        name: 'ИИ Помощник',
-        text: htmlContent,
-        sent: false,
-        stamp: 'только что',
-        bgColor: 'grey-2'
+        loadReport.value = false;
+      }).catch((err) => {
+        console.log(err);
+        loadReport.value = false;
       });
-
-      loadReport.value = false;
-    }).catch((err) => {
-      console.log(err);
-      loadReport.value = false;
-    });
-  }
+    } else props.showInfo('Недопустимый период в запросе, оптимально - не более 7 дней');
+  } else props.showInfo('Отсутствует промпт для ИИ помощника');
 }
 onMounted(() => {
   props.authStore.authorizedRequest('get', 'all_type_works').then((respTW) => {

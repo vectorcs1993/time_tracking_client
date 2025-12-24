@@ -3,10 +3,11 @@
   <q-table v-if="isAllowView(curentConfig)"
     :class="`${props.dark ? 'pp-dark' : 'pp-light'} row fix-table cursor-pointer`" :title="description" square
     :dark="props.dark" dense flat :hide-header="rows.length === 0" :rows="rows" :columns="columns" row-key="id"
-    virtual-scroll :loading="load" selection="single" v-model:selected="selected" color="orange"
-    :hide-selected-banner="true" binary-state-sort :hide-pagination="false" v-model:pagination="pagination"
-    separator="cell" :filter="inputFilter.search" :rows-per-page-options="[1]" wrap-cells grid-header
-    no-data-label="Нет данных" @row-click="selectRow" @update:selected="updateSelect" style="height: max-content;">
+    virtual-scroll :loading="load" selection="single" v-model:selected="selected"
+    :color="`${props.dark ? 'orange' : 'green'}`" :hide-selected-banner="true" binary-state-sort
+    :hide-pagination="false" v-model:pagination="pagination" separator="cell" :filter="inputFilter.search"
+    :rows-per-page-options="[1]" wrap-cells grid-header no-data-label="Нет данных" @row-click="selectRow"
+    @update:selected="updateSelect" style="height: max-content;">
     <template v-slot:top>
       <q-card-actions class="row full-width q-gutter-sm items-center">
         <Button icon="arrow_back" label="К отчётам" @click="router.push(`/reports`)" :dark="props.dark" />
@@ -32,7 +33,7 @@
             периоду, данные колонки будут помечены символом - "*"
           </TTTooltip>
         </TTCheckbox>
-        <Button :dark="props.dark" label="Изменить" icon="edit"
+        <Button v-if="props.authStore.isAdministrator" :dark="props.dark" label="Изменить" icon="edit"
           @click="() => router.push(`/configurations/report/${curentConfig.id}`)" />
       </q-card-actions>
     </template>
@@ -65,12 +66,6 @@
           {{ props.value }}
         </div>
       </q-td>
-    </template>
-    <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
-    <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
     </template>
     <template v-slot:bottom-row="props">
       <q-tr v-if="total">
@@ -367,18 +362,27 @@ function createReport(callback) {
   [inputFilter.value.dateStart, inputFilter.value.dateFinish] = period;
 
   props.authStore.authorizedRequest('get', `report_build?config=${curentConfig.value.id}&dS=${inputFilter.value.dateStart}&dF=${inputFilter.value.dateFinish}&previous=${inputFilter.value.previous ? 1 : 0}`).then((respRP) => {
-    const { original, previous } = respRP.data;
+    const { original, previous, relative } = respRP.data;
+    console.log(original, previous, relative);
+
     columns.value.length = 0;
     columnsOriginal.value.length = 0;
     columnsOriginal.value.push(...original.columns);
     original.columns.forEach((col, i) => {
       if (previous) {
-        const prevCol = previous.columns[i];
-        prevCol.name = `${col.name}_`;
-        prevCol.field = `${col.field}_`;
-        prevCol.label = `${col.label}*`;
-        if (col.name === 'main') columns.value.push(col)
-        else columns.value.push(...[col, prevCol]);
+        if (col.name === 'main') {
+          columns.value.push(col);
+        } else {
+          const prevCol = previous.columns[i];
+          prevCol.name = `${col.name}_`;
+          prevCol.field = `${col.field}_`;
+          prevCol.label = `${col.label}*`;
+          const relCol = relative.columns[i];
+          relCol.name = `${col.name}__`;
+          relCol.field = `${col.field}__`;
+          relCol.label = `${col.label}*%`;
+          columns.value.push(...[col, prevCol, relCol]);
+        }
       } else columns.value.push(col)
     });
     total.value = undefined;

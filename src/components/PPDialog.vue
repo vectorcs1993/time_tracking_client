@@ -27,7 +27,7 @@ const props = defineProps({
 .scrollable-content {
   max-height: 60vh;
   /* или любая другая фиксированная высота */
-  min-height: 200px;
+  min-height: 100px;
   /* минимальная высота */
 }
 

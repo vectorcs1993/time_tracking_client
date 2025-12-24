@@ -71,12 +71,6 @@
         </div>
       </q-td>
     </template>
-    <template v-slot:header-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
-    <template v-slot:body-selection="props">
-      <TTCheckbox v-model="props.selected" :dark="props.dark" />
-    </template>
   </q-table>
   <PPDialog v-model="dialogAdd" label="Новая группа" :dark="props.dark" styleContent="width: 400px;">
     <q-card-section>
@@ -113,7 +107,6 @@ import {
 import PPDialog from 'src/components/PPDialog.vue';
 import Button from 'src/components/InputButton.vue';
 import TTInputTextSingle from 'src/components/InputText.vue';
-import TTCheckbox from 'src/components/InputCheckbox.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 import InputSelect from 'src/components/InputSelect.vue';
 
