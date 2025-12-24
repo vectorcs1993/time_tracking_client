@@ -412,29 +412,38 @@ export const useAuthStore = defineStore('auth', {
       return response.data;
     },
     // Добавить в избранное по пути
-    async addFavorite(path) {
-      const currentTitle = document.title;
+    async addFavorite(path, newName, newShortName) {
       const userFavorites = this.favorites.filter((fav) => fav.user === this.user.id);
-      const short_name = this.getShortLabel(
-        currentTitle,
-        userFavorites, // передаем только записи текущего пользователя
-        '', // excludePath - пустая строка для новой записи
-        this.user.id
-      );
       // Проверяем, нет ли уже такого пути у пользователя
       const isPathAlreadyAdded = userFavorites.some((fav) => fav.path === path);
       if (!isPathAlreadyAdded) {
         const favorite = {
           user: this.user.id,
-          name: currentTitle,
+          name: newName,
           path,
-          short_name: short_name,
+          short_name: newShortName,
         };
         const favoriteId = await this.authorizedRequest('post', 'favorites', favorite);
         favorite.id = favoriteId.data;
         this.favorites.push(favorite);
       } else {
         console.log('Этот путь уже добавлен в избранное');
+      }
+    },
+    // Изменить закладку
+    async changeFavorite(path, newName, newShortName) {
+      try {
+        const favorite = this.favorites.find((fav) => fav.path === path);
+        if (favorite) {
+          favorite.name = newName;
+          favorite.short_name = newShortName;
+          const changeId = Number(favorite.id);
+          if (!isNaN(changeId)) {
+            await this.authorizedRequest('post', `favorites/${changeId}`, { name: favorite.name, short_name: favorite.short_name });
+          }
+        }
+      } catch (err) {
+        console.log(err);
       }
     },
     // Удалить из избранного по пути

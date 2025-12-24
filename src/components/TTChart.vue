@@ -78,6 +78,11 @@ const props = defineProps({
   yAxisUnit: {
     type: String,
     default: ''
+  },
+  // Режим штриховки для всех dataset
+  useHatchPattern: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -86,13 +91,16 @@ const modelData = defineModel('data', {
   type: Object,
   default: () => ({
     labels: [],
-    datasets: [] // всегда массив объектов { label: string, data: number[], color?: string }
+    datasets: [] // всегда массив объектов { label: string, data: number[], color?: string, hatch?: boolean }
   }),
 })
 
 const chartCanvas = ref(null)
 let chartInstance = null
 let isUpdatingChart = false
+
+// Кэш для паттернов штриховки
+const hatchPatternsCache = new Map()
 
 // Проверка наличия данных
 const hasData = computed(() => {
@@ -130,6 +138,121 @@ const defaultColors = [
   '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF',
   '#FF6384A0', '#36A2EBA0', '#FFCE56A0', '#4BC0C0A0', '#9966FFA0', '#FF9F40A0'
 ]
+
+// Функция для создания паттерна штриховки
+const createHatchPattern = (color, type = 'diagonal', size = 12) => {
+  const cacheKey = `${color}_${type}_${size}_${props.dark}`
+
+  if (hatchPatternsCache.has(cacheKey)) {
+    return hatchPatternsCache.get(cacheKey)
+  }
+
+  const patternCanvas = document.createElement('canvas')
+  patternCanvas.width = size
+  patternCanvas.height = size
+  const ctx = patternCanvas.getContext('2d')
+
+  // Фон паттерна (полностью прозрачный или с легким фоном)
+  ctx.fillStyle = props.dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'
+  ctx.fillRect(0, 0, size, size)
+
+  // Рисуем штриховку в зависимости от типа
+  ctx.strokeStyle = color
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+
+  if (type === 'diagonal') {
+    // Диагональная штриховка
+    ctx.beginPath()
+    ctx.moveTo(0, size)
+    ctx.lineTo(size, 0)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(-size / 2, size)
+    ctx.lineTo(size, -size / 2)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(size / 2, size)
+    ctx.lineTo(size + size / 2, -size / 2)
+    ctx.stroke()
+  } else if (type === 'horizontal') {
+    // Горизонтальная штриховка
+    ctx.beginPath()
+    ctx.moveTo(0, size / 2)
+    ctx.lineTo(size, size / 2)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(0, size / 4)
+    ctx.lineTo(size, size / 4)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(0, 3 * size / 4)
+    ctx.lineTo(size, 3 * size / 4)
+    ctx.stroke()
+  } else if (type === 'vertical') {
+    // Вертикальная штриховка
+    ctx.beginPath()
+    ctx.moveTo(size / 2, 0)
+    ctx.lineTo(size / 2, size)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(size / 4, 0)
+    ctx.lineTo(size / 4, size)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(3 * size / 4, 0)
+    ctx.lineTo(3 * size / 4, size)
+    ctx.stroke()
+  } else if (type === 'cross') {
+    // Перекрестная штриховка
+    ctx.beginPath()
+    ctx.moveTo(0, size / 2)
+    ctx.lineTo(size, size / 2)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(size / 2, 0)
+    ctx.lineTo(size / 2, size)
+    ctx.stroke()
+  } else if (type === 'grid') {
+    // Сетка
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    // Вертикальные линии
+    for (let i = 0; i <= size; i += size / 4) {
+      ctx.moveTo(i, 0)
+      ctx.lineTo(i, size)
+    }
+    // Горизонтальные линии
+    for (let i = 0; i <= size; i += size / 4) {
+      ctx.moveTo(0, i)
+      ctx.lineTo(size, i)
+    }
+    ctx.stroke()
+  } else if (type === 'dots') {
+    // Точечный паттерн
+    ctx.fillStyle = color
+    const dotSize = 2
+    for (let x = dotSize; x < size; x += size / 4) {
+      for (let y = dotSize; y < size; y += size / 4) {
+        ctx.beginPath()
+        ctx.arc(x, y, dotSize, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  }
+
+  const pattern = ctx.createPattern(patternCanvas, 'repeat')
+  hatchPatternsCache.set(cacheKey, pattern)
+
+  return pattern
+}
 
 // Функция для форматирования значений на оси Y
 const formatYAxisValue = (value) => {
@@ -246,25 +369,41 @@ const hexToRgba = (hex, alpha = 0.7) => {
 const getDatasetColors = (dataset, index) => {
   // Если указан цвет в dataset, используем его
   if (dataset.color) {
-    return hexToRgba(dataset.color, 0.7)
+    return hexToRgba(dataset.color, dataset.hatchOpacity || 0.7)
   }
 
   // Иначе используем цвет по умолчанию из массива
   const colorIndex = index % defaultColors.length
-  return hexToRgba(defaultColors[colorIndex], 0.7)
+  return hexToRgba(defaultColors[colorIndex], dataset.hatchOpacity || 0.7)
 }
 
 // Получение данных для графика
 const getChartData = () => {
   const datasets = modelData.value.datasets.map((dataset, index) => {
     const colors = getDatasetColors(dataset, index)
+    const useHatch = dataset.hatch !== undefined ? dataset.hatch : props.useHatchPattern
+    const hatchType = dataset.hatchType || 'diagonal'
+
+    // Определяем цвета заливки
+    let backgroundColor, borderColor
+
+    if (useHatch && props.chartType !== 'pie') {
+      // Для штриховки используем паттерн
+      const mainColor = dataset.color || defaultColors[index % defaultColors.length]
+      backgroundColor = createHatchPattern(mainColor, hatchType, dataset.hatchSize || 18)
+      borderColor = colors.border
+    } else {
+      // Обычная заливка цветом
+      backgroundColor = colors.background
+      borderColor = colors.border
+    }
 
     // Конфигурация в зависимости от типа графика
     const config = {
       label: dataset.label || `Набор данных ${index + 1}`,
       data: [...dataset.data],
-      backgroundColor: colors.background,
-      borderColor: colors.border,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
       borderWidth: 3,
     }
 
@@ -273,16 +412,28 @@ const getChartData = () => {
       config.borderRadius = 0
       config.borderSkipped = false
     } else if (props.chartType === 'line') {
-      config.tension = 0 // ← Добавить плавность линий
-      config.fill = false
-      config.pointBackgroundColor = colors.border
-      config.pointBorderColor = '#FFFFFF'
+      config.tension = dataset.tension !== undefined ? dataset.tension : 0
+      config.fill = dataset.fill !== undefined ? dataset.fill : false
+      config.pointBackgroundColor = borderColor
+      config.pointBorderColor = props.dark ? '#121212' : '#FFFFFF'
       config.pointBorderWidth = 1
-      config.pointRadius = 3
-      config.pointHoverRadius = 5
+      config.pointRadius = dataset.pointRadius !== undefined ? dataset.pointRadius : 3
+      config.pointHoverRadius = dataset.pointHoverRadius !== undefined ? dataset.pointHoverRadius : 5
+
+      // Для line chart с штриховкой заливки
+      if (useHatch && config.fill) {
+        // Создаем отдельный плагин для заливки штриховкой в line chart
+        config.fill = 'origin'
+      }
     } else if (props.chartType === 'pie') {
       // Для pie chart нужен один dataset со всеми данными
       if (index === 0 && modelData.value.datasets.length === 1) {
+        config.backgroundColor = Array.isArray(config.backgroundColor)
+          ? config.backgroundColor
+          : [config.backgroundColor]
+        config.borderColor = Array.isArray(config.borderColor)
+          ? config.borderColor
+          : [config.borderColor]
         return config
       }
     }
@@ -305,6 +456,7 @@ const getChartData = () => {
 const getChartOptions = () => {
   const colors = themeColors.value
   const isPieChart = props.chartType === 'pie'
+  const isLineChart = props.chartType === 'line'
 
   // Callback для форматирования значений на оси Y
   const yAxisTicksCallback = {
@@ -313,7 +465,7 @@ const getChartOptions = () => {
     }
   }
 
-  return {
+  const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -425,7 +577,7 @@ const getChartOptions = () => {
         tension: 0
       },
       bar: {
-        borderRadius: 4
+        borderRadius: 0
       }
     },
     interaction: {
@@ -433,6 +585,49 @@ const getChartOptions = () => {
       intersect: false
     }
   }
+
+  // Добавляем кастомную логику для заливки line chart штриховкой
+  if (isLineChart) {
+    options.plugins = {
+      ...options.plugins,
+      afterDatasetsDraw: (chart) => {
+        const ctx = chart.ctx
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex)
+          if (!meta.hidden && dataset.fill) {
+            ctx.save()
+            ctx.beginPath()
+
+            // Рисуем верхнюю линию графика
+            meta.data.forEach((point, index) => {
+              if (index === 0) {
+                ctx.moveTo(point.x, point.y)
+              } else {
+                ctx.lineTo(point.x, point.y)
+              }
+            })
+
+            // Замыкаем путь до оси X
+            const lastPoint = meta.data[meta.data.length - 1]
+            const firstPoint = meta.data[0]
+            ctx.lineTo(lastPoint.x, chart.chartArea.bottom)
+            ctx.lineTo(firstPoint.x, chart.chartArea.bottom)
+            ctx.closePath()
+
+            // Если используется штриховка, применяем паттерн
+            if (dataset.hatch && typeof dataset.backgroundColor === 'object') {
+              ctx.fillStyle = dataset.backgroundColor
+              ctx.fill()
+            }
+
+            ctx.restore()
+          }
+        })
+      }
+    }
+  }
+
+  return options
 }
 
 // Обновление графика
@@ -489,14 +684,21 @@ const initChart = () => {
   })
 }
 
+// Очистка кэша паттернов при изменении темы
+watch(() => props.dark, () => {
+  hatchPatternsCache.clear()
+  updateChart()
+}, { immediate: true })
+
 // Следим за изменениями свойств
-watch(() => props.dark, updateChart, { immediate: true })
 watch(() => props.chartType, updateChart)
 watch(() => props.showLegend, updateChart)
 watch(() => props.showAxisX, updateChart)
 watch(() => props.showAxisY, updateChart)
 // Следим за изменениями единиц измерения
 watch(() => props.yAxisUnit, updateChart)
+// Следим за изменением режима штриховки
+watch(() => props.useHatchPattern, updateChart)
 
 // Следим за изменениями данных модели
 watch(() => modelData.value, () => {
@@ -523,6 +725,13 @@ onBeforeUnmount(() => {
     chartInstance.destroy()
     chartInstance = null
   }
+  hatchPatternsCache.clear()
+})
+
+// Экспортируем функции для работы с штриховкой
+defineExpose({
+  updateChart,
+  clearCache: () => hatchPatternsCache.clear()
 })
 </script>
 

@@ -377,11 +377,13 @@ function createReport(callback) {
           prevCol.name = `${col.name}_`;
           prevCol.field = `${col.field}_`;
           prevCol.label = `${col.label}*`;
+          prevCol.hatch = true;
           const relCol = relative.columns[i];
           relCol.name = `${col.name}__`;
           relCol.field = `${col.field}__`;
-          relCol.label = `${col.label}*%`;
-          columns.value.push(...[col, prevCol, relCol]);
+          relCol.label = `${col.label}*Δ`;
+          relCol.forChart = false;
+          columns.value.push(...[prevCol, col, relCol]);
         }
       } else columns.value.push(col)
     });
@@ -394,12 +396,18 @@ function createReport(callback) {
         previous.columns.forEach((colPrev, ic) => {
           row[colPrev.name] = previous.rows[i][original.columns[ic].name];
         });
+        relative.columns.forEach((colRel, ic) => {
+          row[colRel.name] = relative.rows[i][original.columns[ic].name];
+        });
       }
       rows.value.push(row);
     });
     if (previous) {
       previous.columns.forEach((colPrev, ic) => {
         total.value[colPrev.name] = previous.total[original.columns[ic].name];
+      });
+      relative.columns.forEach((colRel, ic) => {
+        total.value[colRel.name] = relative.total[original.columns[ic].name];
       });
     }
 
@@ -409,12 +417,15 @@ function createReport(callback) {
     chartDataMetricCount.value = {
       labels: rows.value.map((row) => row.main),
       datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart).map((col) => {
+        console.log(col);
+
         return {
           label: col.label,
           data: rows.value.map((row) => {
             return row[col.name];
           }),
           color: col.color_bg || undefined,
+          hatch: col.hatch || false,
         };
       }),
     }
@@ -427,6 +438,7 @@ function createReport(callback) {
             return row[col.name];
           }),
           color: col.color_bg || undefined,
+          hatch: col.hatch || false,
         };
       }),
     }
@@ -439,6 +451,7 @@ function createReport(callback) {
             return row[col.name];
           }),
           color: col.color_bg || undefined,
+          hatch: col.hatch || false,
         };
       }),
     }

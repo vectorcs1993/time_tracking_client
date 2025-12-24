@@ -102,11 +102,29 @@
         <component :is="Component"
           v-bind="{ authStore, showError, showInfo, showConfirm, dark, debug, branch, load, login, logout }">
           <template #favorite>
-            <q-checkbox v-model="favorite" checked-icon="star" color="orange" size="sm" unchecked-icon="star_border"
-              :dark="dark" @update:model-value="(val) => {
-                if (val) authStore.addFavorite(route.fullPath);
-                else authStore.removeFavorite(route.fullPath);
-              }" />
+            <q-btn flat round size="md" :icon="`${favorite ? 'star' : 'star_border'}`"
+              :color="`${favorite ? 'orange' : 'white'}`" :dark="dark" @click="clickToFavorite">
+              <q-popup-proxy square transition-show="scale" transition-hide="scale">
+                <q-card square style="width: 250px; height: max-content;" :dark="dark">
+                  <q-card-section class="q-gutter-sm">
+                    <InputText v-model="favoriteName" label="Название закладки" :dark="dark" />
+                    <InputText v-model="favoriteShortName" label="Короткое наименование" :dark="dark"
+                      error-message="Максимум 2 символа" :error="!isValidFavoriteShortName" />
+                  </q-card-section>
+                  <q-card-actions>
+                    <Button :disable="!isValidFavoriteShortName" v-if="favorite" label="Изменить" :dark="dark" @click="() => {
+                      authStore.changeFavorite(route.fullPath, favoriteName, favoriteShortName);
+                    }" v-close-popup />
+                    <Button v-if="favorite" label="Удалить" :dark="dark" @click="() => {
+                      authStore.removeFavorite(route.fullPath).then(() => favorite = false);
+                    }" v-close-popup />
+                    <Button :disable="!isValidFavoriteShortName" v-else label="Добавить" :dark="dark"
+                      @click="authStore.addFavorite(route.fullPath, favoriteName, favoriteShortName).then(() => favorite = true)"
+                      v-close-popup />
+                  </q-card-actions>
+                </q-card>
+              </q-popup-proxy>
+            </q-btn>
           </template>
         </component>
       </router-view>
@@ -144,6 +162,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from 'src/stores/store.js';
 import packageInfo from '../../package.json';
 import TTTooltip from 'src/components/TTTooltip.vue';
+import InputText from 'src/components/InputText.vue';
 
 const root = document.documentElement;
 
@@ -176,7 +195,9 @@ const routeDisplayConfig = ref({
 });
 
 const favorite = ref(false);
-
+const favoriteName = ref('');
+const favoriteShortName = ref('');
+const isValidFavoriteShortName = computed(() => favoriteShortName.value.length <= 2)
 // Основные пункты меню
 const mainMenuItems = computed(() => {
   const routes = router.getRoutes();
@@ -282,7 +303,17 @@ function navigateTo(path) {
 function isActive(path) {
   return route.fullPath === path;
 }
-
+function clickToFavorite() {
+  const fav = authStore.getFavorites.find((fav) => isActive(fav.path));
+  if (!fav) {
+    favoriteName.value = document.title;
+    const userFavorites = authStore.getFavorites.filter((fav) => fav.user === authStore.getUser.id);
+    favoriteShortName.value = authStore.getShortLabel(document.title, userFavorites, '', authStore.getUser.id);
+  } else {
+    favoriteName.value = fav.name;
+    favoriteShortName.value = fav.short_name;
+  }
+}
 watch(() => route.fullPath, (newPath) => {
   favorite.value = authStore.getFavorites.some((f) => f.path === newPath);
 }, { immediate: true });
