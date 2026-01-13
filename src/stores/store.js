@@ -24,6 +24,7 @@ export const useAuthStore = defineStore('auth', {
     PERIOD_ALL: 2,
     PERIOD_TODAY: 1,
     PERIOD_YESTERDAY: 3,
+    PERIOD_2: 9,
     PERIOD_7: 4,
     PERIOD_14: 8,
     PERIOD_30: 5,
@@ -50,6 +51,10 @@ export const useAuthStore = defineStore('auth', {
       {
         id: state.PERIOD_YESTERDAY,
         name: 'Вчера',
+      },
+      {
+        id: state.PERIOD_2,
+        name: 'Сегодня и вчера',
       },
       {
         id: state.PERIOD_7,
@@ -114,28 +119,31 @@ export const useAuthStore = defineStore('auth', {
       const yesterday90 = day.clone().subtract(90, 'days');
       const yesterday180 = day.clone().subtract(180, 'days');
       // дата старта и финиша - сегодня
-      if (period === 1) {
+      if (period === this.PERIOD_TODAY) {
         dateStart = day.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
-      } else if (period === 3) { // вчера
+      } else if (period === this.PERIOD_YESTERDAY) { // вчера
         dateStart = yesterday.format(this.datetimeFormat);
         dateFinish = yesterday.format(this.datetimeFormat);
-      } else if (period === 4) { // 7 дней
+      } else if (period === this.PERIOD_7) { // 7 дней
         dateStart = yesterday7.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
-      } else if (period === 5) { // 30 дней
+      } else if (period === this.PERIOD_30) { // 30 дней
         dateStart = yesterday30.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
-      } else if (period === 6) { // 180 дней
+      } else if (period === this.PERIOD_180) { // 180 дней
         dateStart = yesterday180.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
-      } else if (period === 7) { // 90 дней
+      } else if (period === this.PERIOD_90) { // 90 дней
         dateStart = yesterday90.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
-      } else if (period === 8) { // 14 дней
+      } else if (period === this.PERIOD_14) { // 14 дней
         dateStart = yesterday14.format(this.datetimeFormat);
         dateFinish = day.format(this.datetimeFormat);
-      } else if (period === 2) { // все данные
+      } else if (period === this.PERIOD_2) { // сегодня и вчера
+        dateStart = yesterday.format(this.datetimeFormat);
+        dateFinish = day.format(this.datetimeFormat);
+      } else if (period === this.PERIOD_ALL) { // все данные
         dateStart = 'null';
         dateFinish = 'null';
       }
@@ -358,6 +366,7 @@ export const useAuthStore = defineStore('auth', {
 
 
         const responseFavoites = await api.get('favorites');
+        this.favorites.length = 0;
         this.favorites.push(...responseFavoites.data);
 
         return this.user;

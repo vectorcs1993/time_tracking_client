@@ -1,10 +1,31 @@
 <template>
   <q-table :class="`${props.dark ? 'pp-dark' : 'pp-light'} fix-table cursor-pointer q-pa-none q-ma-none text-size`"
-    square :dark="props.dark" dense flat wrap-cells :rows="rows" :columns="columns" row-key="id" virtual-scroll
-    :hide-selected-banner="true" selection="single" :loading="load" :color="`${props.dark ? 'orange' : 'green'}`"
-    binary-state-sort :hide-pagination="false" v-model:pagination="pagination" separator="cell"
-    :rows-per-page-options="[1]" grid-header no-data-label="Нет данных" :filter="filter" v-model:selected="selected"
-    @row-click="selectRow" @row-dblclick="router.push(`/report/${selected[0].id}`)" style="height: 90vh;">
+    square :dark="props.dark" dense flat wrap-cells :rows="rows" :columns="[
+      {
+        name: 'name',
+        label: 'Наименование',
+        align: 'left',
+        field: 'name',
+        sortable: true,
+      },
+      {
+        name: 'branches',
+        label: 'Группа',
+        align: 'center',
+        sortable: true,
+        field: 'branches',
+      },
+      {
+        name: 'description',
+        label: 'Комментарий',
+        align: 'center',
+        field: 'description',
+      },
+    ]" row-key="id" virtual-scroll :hide-selected-banner="true" selection="single" :loading="load"
+    :color="`${props.dark ? 'orange' : 'green'}`" binary-state-sort :hide-pagination="false"
+    v-model:pagination="pagination" separator="cell" :rows-per-page-options="[1]" grid-header no-data-label="Нет данных"
+    :filter="filter" v-model:selected="selected" @row-click="selectRow"
+    @row-dblclick="router.push(`/report/${selected[0].id}`)" style="height: 90vh;">
     <template v-slot:top>
       <q-card-actions class="row fit q-gutter-sm">
         <div class="text-h6">
@@ -60,6 +81,7 @@ import Button from 'src/components/InputButton.vue';
 import InputSearch from 'src/components/InputSearch.vue';
 import InputText from 'src/components/InputText.vue';
 import PPDialog from 'src/components/PPDialog.vue';
+import { OPTION_ALL } from './fun';
 
 document.title = 'Выбор отчёта';
 
@@ -73,6 +95,7 @@ const props = defineProps({
 const router = useRouter();
 const load = ref(false);
 const rows = ref([]);
+const type_branches = ref([]);
 const filter = ref('');
 const selected = ref([]);
 const dialogAdd = ref(false);
@@ -83,21 +106,6 @@ const modelInput = ref({
 const pagination = ref({
   rowsPerPage: 0,
 });
-const columns = ref([
-  {
-    name: 'name',
-    label: 'Наименование',
-    align: 'left',
-    field: 'name',
-    sortable: true,
-  },
-  {
-    name: 'description',
-    label: 'Комментарий',
-    align: 'center',
-    field: 'description',
-  },
-]);
 function isAllowView(val) {
   try {
     return val.allow_view.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
@@ -114,6 +122,7 @@ function update() {
       return {
         ...c,
         allow_view: JSON.parse(c.allow_view),
+        branches: JSON.parse(c.filter_branches).map((bid) => type_branches.value.find((b) => b.id === bid).name).join(', '),
       };
     }).filter((c) => isAllowView(c)));
     load.value = false;
@@ -143,6 +152,11 @@ function remove() {
 }
 
 onMounted(() => {
-  update();
+  type_branches.value.length = 0;
+  type_branches.value.push(OPTION_ALL);
+  props.authStore.authorizedRequest('get', `branches`).then((respBR) => {
+    type_branches.value.push(...respBR.data);
+    update();
+  });
 });
 </script>

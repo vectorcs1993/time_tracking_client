@@ -53,14 +53,14 @@
     </template>
   </q-table>
   <PPDialog v-model="dialogAdd" label="Новый источник поступления" :dark="props.dark" styleContent="width: 400px;">
-    <q-card-section>
+    <q-card-section class="q-gutter-sm">
       <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
       <Button :disable="!modelInput.name" label="Создать" :dark="props.dark" @click="add" />
     </q-card-section>
   </PPDialog>
   <PPDialog v-model="dialogUpdate" label="Изменение источника поступления" :dark="props.dark"
     styleContent="width: 400px;">
-    <q-card-section>
+    <q-card-section class="q-gutter-sm">
       <TTInputTextSingle label="Наименование" :dark="props.dark" v-model="modelInput.name" />
       <Button :disable="!modelInput.name" label="Изменить" :dark="props.dark" @click="change" />
     </q-card-section>

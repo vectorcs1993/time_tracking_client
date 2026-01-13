@@ -28,14 +28,14 @@
                       Роль:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getRole.name
-                    }}</q-badge>
+                      }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div>
                       Группа:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name
-                      }}</q-badge>
+                    }}</q-badge>
                   </div>
                   <!-- <div class="row justify-between items-center">
                     <div class="col">
@@ -320,11 +320,11 @@ watch(() => route.fullPath, (newPath) => {
 
 onMounted(async () => {
   load(false);
-  if (authStore.isAuthenticated) {
-    await authStore.initializeApp();
-    updateTextSize();
-    updateTheme();
-  }
+  // if (authStore.isAuthenticated) {
+  await authStore.initializeApp();
+  updateTextSize();
+  updateTheme();
+  // }
 });
 onBeforeUnmount(() => {
   if (de.value) de.value.hide();
