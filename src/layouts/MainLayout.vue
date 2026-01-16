@@ -28,14 +28,14 @@
                       Роль:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getRole.name
-                      }}</q-badge>
+                    }}</q-badge>
                   </div>
                   <div class="row justify-between items-center">
                     <div>
                       Группа:
                     </div>
                     <q-badge class="text-size" :color="dark ? 'grey-7' : 'green'">{{ authStore.getBranch.name
-                    }}</q-badge>
+                      }}</q-badge>
                   </div>
                   <!-- <div class="row justify-between items-center">
                     <div class="col">
@@ -81,7 +81,7 @@
         </div>
         <!-- Избранное -->
         <template v-for="(favorite, index) in authStore.getFavorites" :key="'fav-' + index">
-          <q-item clickable @click="navigateTo(favorite.path)" :active="isActive(favorite.path)">
+          <q-item :to="favorite.path" @click="navigateTo(favorite.path)" :active="isActive(favorite.path)">
             <q-item-section avatar>
               <div>
                 {{ favorite.short_name }}
@@ -295,10 +295,9 @@ function logout() {
     router.push('/login');
   });
 }
-function navigateTo(path) {
+function navigateTo() {
   showMessage.value = true;
   miniState.value = true;
-  router.push(path);
 }
 function isActive(path) {
   return route.fullPath === path;
@@ -318,13 +317,11 @@ watch(() => route.fullPath, (newPath) => {
   favorite.value = authStore.getFavorites.some((f) => f.path === newPath);
 }, { immediate: true });
 
-onMounted(async () => {
+onMounted(() => {
   load(false);
-  // if (authStore.isAuthenticated) {
-  await authStore.initializeApp();
   updateTextSize();
   updateTheme();
-  // }
+  authStore.initializeApp();
 });
 onBeforeUnmount(() => {
   if (de.value) de.value.hide();

@@ -378,8 +378,6 @@ function createReport(callback) {
     }&all_data=${inputFilter.value.allData ? 1 : 0
     }`).then((respRP) => {
       const { original, previous, relative } = respRP.data;
-      console.log(original, previous, relative);
-
       columns.value.length = 0;
       columnsOriginal.value.length = 0;
       columnsOriginal.value.push(...original.columns);
@@ -432,8 +430,6 @@ function createReport(callback) {
       chartDataMetricCount.value = {
         labels: rows.value.map((row) => row.main),
         datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart).map((col) => {
-          console.log(col);
-
           return {
             label: col.label,
             data: rows.value.map((row) => {
