@@ -344,6 +344,7 @@ export const useAuthStore = defineStore('auth', {
         } else throw error;
       }
     },
+
     async fetchUser() {
       if (!this.token) {
         throw new Error('No token available');
@@ -383,6 +384,11 @@ export const useAuthStore = defineStore('auth', {
 
           const responseBranch = await api.get(`/branches/${this.user.branch}`);
           this.branch = responseBranch.data;
+
+          const responseFavoites = await api.get('favorites');
+          this.favorites.length = 0;
+          this.favorites.push(...responseFavoites.data);
+
           return this.user;
         }
         throw err;
