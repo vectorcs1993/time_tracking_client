@@ -21,8 +21,8 @@
         </div>
         <InputSelect label="Тип отчёта" v-model="config.type" :options="type_reports" :dark="props.dark"
           style="width: 100%;" />
-        <TTSelectMultiply label="Фильтр группы" v-model="config.filter_branches" :options="branches_mod"
-          :dark="props.dark" style="width: 100%;" />
+        <TTSelectMultiply label="Фильтр группы" v-model="config.filter_branches" :options="branches" :dark="props.dark"
+          style="width: 100%;" />
         <TTSelectMultiply label="Разрешить просмотр" v-model="config.allow_view" :options="branches_mod"
           :dark="props.dark" style="width: 100%;" />
         <TTInputTextSingle label="Описание" v-model="config.description" style="width: 100%; height: 400px;"
@@ -315,7 +315,7 @@ function update() {
       config.value.filter_branches = [];
     }
 
-    config.value.filter_branches = config.value.filter_branches.map((e) => branches.value.find((b) => b.id === e));
+    config.value.filter_branches = config.value.filter_branches.map((e) => branches_mod.value.find((b) => b.id === e));
 
     document.title = `Настройка отчёта ${config.value.name || 'Ошибка'}`;
 
@@ -459,6 +459,8 @@ onMounted(() => {
                 props.authStore.authorizedRequest('get', `branches`).then((respB) => {
                   branches_mod.value.push(OPTION_ALL);
                   branches_mod.value.push(...respB.data);
+                  console.log(branches_mod.value);
+
                   branches.value.push(...respB.data);
                   type_reports.value.length = 0;
                   props.authStore.authorizedRequest('get', `all_type_reports`).then((respTR) => {

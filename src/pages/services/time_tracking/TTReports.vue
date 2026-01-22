@@ -108,7 +108,7 @@ const pagination = ref({
 });
 function isAllowView(val) {
   try {
-    return val.allow_view.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
+    return val.allow_view.find((b) => b === props.authStore.getUser.branch) || props.authStore.isAdministrator;
   } catch (err) {
     console.log(err);
     return false;

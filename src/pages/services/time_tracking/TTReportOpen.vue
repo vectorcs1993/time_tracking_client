@@ -174,6 +174,11 @@ const types_points = [
     val: 5,
   },
   {
+    id: 4,
+    name: '4',
+    val: 4,
+  },
+  {
     id: 1,
     name: '7',
     val: 7,
@@ -217,7 +222,7 @@ function selectRow(event, row) {
 }
 function isAllowView(val) {
   try {
-    return val.allow_view.find((b) => b === props.authStore.getUser.branch || props.authStore.isAdministrator);
+    return val.allow_view.find((b) => b === props.authStore.getUser.branch) || props.authStore.isAdministrator;
   } catch {
     return false;
   }
@@ -259,7 +264,7 @@ function updateSelect(sel) {
       chartDataIndividualCount.value = {
         labels: dataset.value.map((ds, i) => { // Значения по оси X
           let val = ds.to;
-          if (i === 0) val = ds.from;
+          if (i === 0) val = ds.to;
           const parsedDate = new Date(val);
           return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
         }),
@@ -278,7 +283,7 @@ function updateSelect(sel) {
       chartDataIndividualTime.value = {
         labels: dataset.value.map((ds, i) => { // Значения по оси X
           let val = ds.to;
-          if (i === 0) val = ds.from;
+          if (i === 0) val = ds.to;
           const parsedDate = new Date(val);
           return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
         }),
@@ -297,7 +302,7 @@ function updateSelect(sel) {
       chartDataIndividualCountBox.value = {
         labels: dataset.value.map((ds, i) => { // Значения по оси X
           let val = ds.to;
-          if (i === 0) val = ds.from;
+          if (i === 0) val = ds.to;
           const parsedDate = new Date(val);
           return date.formatDate(parsedDate, 'HH:mm DD.MM.YYYY');
         }),
@@ -379,96 +384,99 @@ function createReport(callback) {
     }`).then((respRP) => {
       const { original, previous, relative } = respRP.data;
       columns.value.length = 0;
-      columnsOriginal.value.length = 0;
-      columnsOriginal.value.push(...original.columns);
-      original.columns.forEach((col, i) => {
-        if (previous) {
-          if (col.name === 'main') {
-            columns.value.push(col);
-          } else {
-            const prevCol = previous.columns[i];
-            prevCol.name = `${col.name}_`;
-            prevCol.field = `${col.field}_`;
-            prevCol.label = `${col.label}*`;
-            prevCol.hatch = true;
-            const relCol = relative.columns[i];
-            relCol.name = `${col.name}__`;
-            relCol.field = `${col.field}__`;
-            relCol.label = `${col.label}*Δ`;
-            relCol.forChart = false;
-            columns.value.push(...[prevCol, col, relCol]);
-          }
-        } else columns.value.push(col)
-      });
-      total.value = undefined;
-      total.value = original.total;
+      if (original) {
 
-      rows.value.length = 0;
-      original.rows.forEach((row, i) => {
+        columnsOriginal.value.length = 0;
+        columnsOriginal.value.push(...original.columns);
+        original.columns.forEach((col, i) => {
+          if (previous) {
+            if (col.name === 'main') {
+              columns.value.push(col);
+            } else {
+              const prevCol = previous.columns[i];
+              prevCol.name = `${col.name}_`;
+              prevCol.field = `${col.field}_`;
+              prevCol.label = `${col.label}*`;
+              prevCol.hatch = true;
+              const relCol = relative.columns[i];
+              relCol.name = `${col.name}__`;
+              relCol.field = `${col.field}__`;
+              relCol.label = `${col.label}*Δ`;
+              relCol.forChart = false;
+              columns.value.push(...[prevCol, col, relCol]);
+            }
+          } else columns.value.push(col)
+        });
+        total.value = undefined;
+        total.value = original.total;
+
+        rows.value.length = 0;
+        original.rows.forEach((row, i) => {
+          if (previous) {
+            previous.columns.forEach((colPrev, ic) => {
+              row[colPrev.name] = previous.rows[i][original.columns[ic].name];
+            });
+            relative.columns.forEach((colRel, ic) => {
+              row[colRel.name] = relative.rows[i][original.columns[ic].name];
+            });
+          }
+          rows.value.push(row);
+        });
         if (previous) {
           previous.columns.forEach((colPrev, ic) => {
-            row[colPrev.name] = previous.rows[i][original.columns[ic].name];
+            total.value[colPrev.name] = previous.total[original.columns[ic].name];
           });
           relative.columns.forEach((colRel, ic) => {
-            row[colRel.name] = relative.rows[i][original.columns[ic].name];
+            total.value[colRel.name] = relative.total[original.columns[ic].name];
           });
         }
-        rows.value.push(row);
-      });
-      if (previous) {
-        previous.columns.forEach((colPrev, ic) => {
-          total.value[colPrev.name] = previous.total[original.columns[ic].name];
-        });
-        relative.columns.forEach((colRel, ic) => {
-          total.value[colRel.name] = relative.total[original.columns[ic].name];
-        });
-      }
 
-      load.value = false;
-      isCreateReportInProgress.value = false;
+        load.value = false;
+        isCreateReportInProgress.value = false;
 
-      chartDataMetricCount.value = {
-        labels: rows.value.map((row) => row.main),
-        datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart).map((col) => {
-          return {
-            label: col.label,
-            data: rows.value.map((row) => {
-              return row[col.name];
-            }),
-            color: col.color_bg || undefined,
-            hatch: col.hatch || false,
-          };
-        }),
-      }
-      chartDataMetricTime.value = {
-        labels: rows.value.map((row) => row.main),
-        datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_TIME && col.forChart).map((col) => {
-          return {
-            label: col.label,
-            data: rows.value.map((row) => {
-              return row[col.name];
-            }),
-            color: col.color_bg || undefined,
-            hatch: col.hatch || false,
-          };
-        }),
-      }
-      chartDataMetricCountBox.value = {
-        labels: rows.value.map((row) => row.main),
-        datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT_BOX && col.forChart).map((col) => {
-          return {
-            label: col.label,
-            data: rows.value.map((row) => {
-              return row[col.name];
-            }),
-            color: col.color_bg || undefined,
-            hatch: col.hatch || false,
-          };
-        }),
-      }
-      if (callback) {
-        if (typeof callback === 'function') {
-          callback();
+        chartDataMetricCount.value = {
+          labels: rows.value.map((row) => row.main),
+          datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT && col.forChart).map((col) => {
+            return {
+              label: col.label,
+              data: rows.value.map((row) => {
+                return row[col.name];
+              }),
+              color: col.color_bg || undefined,
+              hatch: col.hatch || false,
+            };
+          }),
+        }
+        chartDataMetricTime.value = {
+          labels: rows.value.map((row) => row.main),
+          datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_TIME && col.forChart).map((col) => {
+            return {
+              label: col.label,
+              data: rows.value.map((row) => {
+                return row[col.name];
+              }),
+              color: col.color_bg || undefined,
+              hatch: col.hatch || false,
+            };
+          }),
+        }
+        chartDataMetricCountBox.value = {
+          labels: rows.value.map((row) => row.main),
+          datasets: columns.value.filter((col) => col.chart === 'value' && col.type_metric === props.authStore.TYPE_METRICS_COUNT_BOX && col.forChart).map((col) => {
+            return {
+              label: col.label,
+              data: rows.value.map((row) => {
+                return row[col.name];
+              }),
+              color: col.color_bg || undefined,
+              hatch: col.hatch || false,
+            };
+          }),
+        }
+        if (callback) {
+          if (typeof callback === 'function') {
+            callback();
+          }
         }
       }
     }).catch((err) => {
