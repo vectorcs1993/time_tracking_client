@@ -8,8 +8,8 @@
           <img class="q-mt-xs" src="./logo_standby_mono.svg"
             style="padding: 0px; width: 40px; height: 30px; cursor: pointer; position: absolute; left: 160px; top: 12px; z-index: 99;"
             @click="toggleLeftDrawer">
-          <img class="q-mt-xs" src="./planerman_ny.svg"
-            style="cursor: pointer; position: absolute; left: 203px; top: 7px; z-index: 99;" @click="toggleLeftDrawer">
+          <img class="q-mt-xs" src="./planerman.svg"
+            style="cursor: pointer; position: absolute; left: 203px; top: 12px; z-index: 99;" @click="toggleLeftDrawer">
           <q-space />
           <div v-if="authStore.getUser && authStore.getBranch">
             <Button :label="authStore.getUser.name" icon="person" :dark="dark">

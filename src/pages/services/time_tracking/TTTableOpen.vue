@@ -832,7 +832,10 @@ function actionDelete() {
       deletedQuery.push(props.authStore.authorizedRequest('delete', `records/${s.id}`));
     }
   });
-  Promise.all(deletedQuery).then(() => requestRecords()).catch((err) => {
+  Promise.all(deletedQuery).then(() => {
+    selected.value.length = 0;
+    requestRecords()
+  }).catch((err) => {
     console.log(err);
     props.showInfo('Ошибка удаления записи');
   });
